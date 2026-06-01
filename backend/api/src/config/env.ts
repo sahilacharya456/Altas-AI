@@ -49,3 +49,26 @@ if (!parsed.success) {
 export const env = parsed.data;
 
 export const isProduction = env.nodeEnv === 'production';
+
+// Production safety guards — fail fast rather than run insecure.
+if (isProduction) {
+  const warnings: string[] = [];
+
+  if (!env.firebaseServiceAccountJson) {
+    throw new Error('[AltasAI] FIREBASE_SERVICE_ACCOUNT_JSON is required in production.');
+  }
+  if (!env.requireAppCheck) {
+    warnings.push('REQUIRE_APP_CHECK is false — Firebase App Check is not enforced. Set to true before accepting real users.');
+  }
+  if (!env.adminMetricsToken) {
+    warnings.push('ADMIN_METRICS_TOKEN is not set — /metrics and /admin/stats endpoints are unprotected.');
+  }
+  if (env.allowedOrigins.some(o => o.includes('localhost') || o.includes('127.0.0.1'))) {
+    warnings.push('ALLOWED_ORIGINS contains localhost entries — remove these for production.');
+  }
+
+  for (const warning of warnings) {
+    // Use console.warn directly here since logger may not be loaded yet
+    console.warn(`[AltasAI Production Warning] ${warning}`);
+  }
+}

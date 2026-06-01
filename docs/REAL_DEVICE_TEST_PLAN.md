@@ -1,140 +1,184 @@
 # AltasAI Real Device Test Plan
 
-Unit and integration tests verify logic. This plan verifies the product works for a real human on a real device.
+Unit tests verify logic. This plan verifies the product works for a real human on a real device.
 
-## Setup
+## Prerequisites
 
 ```bash
-# 1. Start backend
-npm run api
+# Terminal 1: Start backend
+cd backend/api && npm run dev
+# Verify: curl http://localhost:3001/health → {"ok":true,...}
 
-# 2. Start mobile app
+# Terminal 2: Start Expo
 npm run web --workspace=apps/mobile
-# OR for native:
-npm run mobile:android  # Android physical device
-npm run mobile:ios      # iOS physical device
+# OR for physical device: install Expo Go → scan QR code
 ```
 
-Verify `EXPO_PUBLIC_ALTASAI_API_BASE_URL` points to a reachable backend (not localhost if testing on a physical device — use your LAN IP or a deployed backend URL).
+For physical device: backend must be reachable from the device. Update `.env`:
+```
+EXPO_PUBLIC_ALTASAI_API_BASE_URL=http://192.168.x.x:3001
+```
 
 ---
 
-## Test Suite: Core Demo Flow
+## T1: Registration and Onboarding
 
-Run this before every demo, beta invite, or LinkedIn post.
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 1.1 | Open app | Welcome screen loads | Black screen / error |
+| 1.2 | Tap "Get Started" | Register screen opens | Nothing happens |
+| 1.3 | Enter email + password + name, tap register | Loading → Onboarding | Error stays on Register |
+| 1.4 | Select discipline level (Strict) | Option highlights | No visual feedback |
+| 1.5 | Select focus areas | Multiple selectable | Only one selectable |
+| 1.6 | Select life rhythm, tap "Start AltasAI" | Dashboard loads | Spins forever |
 
-### T1: Onboarding Flow
-- [ ] Welcome screen renders without errors
-- [ ] Register with a new email completes successfully
-- [ ] Onboarding steps load: discipline level, focus areas, life rhythm
-- [ ] Completing onboarding navigates to Home dashboard
-- [ ] Home dashboard shows "Daily command briefing" card with real content
-
-### T2: Task Creation and Ranking
-- [ ] Tap "Add task" → modal opens
-- [ ] Create task "Test FYP report" — High priority, today, 45 minutes
-- [ ] Task appears in Top 3 Actions on home screen
-- [ ] Task appears on Tasks screen
-- [ ] Carried task indicator appears correctly if `carryCount > 0`
-
-### T3: Focus Session
-- [ ] Navigate to Tasks screen → tap a task
-- [ ] Focus Mode screen loads with task title
-- [ ] Timer starts automatically
-- [ ] Pause / Resume buttons work
-- [ ] Quality selector (1–5) responds to taps
-- [ ] Notes field accepts input
-- [ ] "Complete Task" marks task as completed and navigates back
-- [ ] "End Session" ends session without completing task
-- [ ] Completed task disappears from active list
-
-### T4: Reflection Submission
-- [ ] Open Reflection screen
-- [ ] Mood slider or option selector responds
-- [ ] Energy step responds
-- [ ] Wins text input accepts multi-line input
-- [ ] Challenges text input accepts input
-- [ ] "Submit" saves to Firestore (verify in Firebase Console)
-- [ ] After submission, screen shows success state or navigates back
-- [ ] Mentor feedback appears (or offline fallback message is shown)
-
-### T5: AI Mentor
-- [ ] Open Mentor screen
-- [ ] Welcome message appears: "Ready, [name]. Give me the real situation..."
-- [ ] Type: "I got distracted today and only finished half my work"
-- [ ] Typing indicator appears ("AltasAI is analyzing")
-- [ ] Response arrives within 20 seconds
-- [ ] Response contains: "Read:", "Move:", "Why:" or similar structure
-- [ ] Quick response chips work (tap → fills input)
-- [ ] "Offline fallback" badge appears if backend is unreachable
-
-**Offline test**:
-- [ ] Stop the backend (`Ctrl+C`)
-- [ ] Send a mentor message
-- [ ] Offline fallback text appears (not a crash or empty screen)
-- [ ] Restart backend — next message works again
-
-### T6: Cortex / Interventions
-- [ ] Open Cortex screen (from home or via Quick Modules)
-- [ ] Behavior signals load: productivity state, burnout risk, deadline risk
-- [ ] No empty state shows when data is available
-- [ ] Open Interventions screen
-- [ ] Accept an intervention card → status updates
-- [ ] Ignore an intervention card → card disappears
-
-### T7: Weekly Report
-- [ ] Open Reports screen
-- [ ] Tap "Generate weekly report"
-- [ ] Report loads with summary, wins, risks, next week actions
-- [ ] Offline fallback shows if backend is down
-
-### T8: Profile and Settings
-- [ ] Open Profile screen
-- [ ] Discipline level shown correctly
-- [ ] Logout works: navigates to Welcome screen
-- [ ] Re-login restores session correctly
+**Screenshot**: Dashboard loaded after onboarding completion.
 
 ---
 
-## Test Suite: Edge Cases
+## T2: Home Dashboard
 
-### E1: No Network
-- [ ] App launches without backend running
-- [ ] Home dashboard shows graceful error state, not crash
-- [ ] Mentor shows offline fallback, not blank screen
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 2.1 | View daily briefing card | Non-empty top priority + risk level | "Loading..." forever |
+| 2.2 | View Quick Modules grid | 8 tiles: Execute, Mentor, Cortex, Reports, Goals, Reflect, Shield, Profile | Finance / Khata / News visible |
+| 2.3 | Pull to refresh | Dashboard reloads cleanly | Error state appears |
 
-### E2: Empty State
-- [ ] Fresh account with no tasks → Home shows EmptyState for Top 3
-- [ ] Fresh account with no goals → Goals screen shows EmptyState
-- [ ] No interventions → correct empty message shown
+**Screenshot**: Home dashboard with loaded briefing card and 8-tile grid.
 
-### E3: Long Input
-- [ ] Mentor message with 2000 characters → backend accepts, response arrives
-- [ ] Task title with 500 characters → saved correctly
+---
 
-### E4: Auth Expiry
-- [ ] Force token expiry (wait 1 hour or manually invalidate in Firebase Console)
-- [ ] App re-authenticates automatically on next API call (Firebase handles this)
-- [ ] No auth error shown to user
+## T3: Task Creation
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 3.1 | Tap "Add task" button | Modal opens | Nothing happens |
+| 3.2 | Enter title, set High priority, 30 min | Values set | Input broken |
+| 3.3 | Tap "Create Task" | Modal closes, task in list | Error / modal stays |
+| 3.4 | Open Home screen | Task visible in Top 3 | Not visible |
+
+**Screenshot**: Task visible in list with priority badge.
+
+---
+
+## T4: Focus Session
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 4.1 | Tap task → navigate to Focus | Focus screen with task title, timer starts | Wrong screen / error |
+| 4.2 | Wait 30 seconds | Timer shows 00:30 | Timer frozen |
+| 4.3 | Pause → Resume | Timer pauses then continues | Unresponsive |
+| 4.4 | Set quality to 4, add note | Values accepted | Unresponsive |
+| 4.5 | Tap "Complete Task" | Returns to Tasks, task = completed | Error / stays |
+| 4.6 | Check task status | Shows completed | Still pending |
+
+**Screenshot**: Timer running with task title visible.
+
+---
+
+## T5: Reflection
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 5.1 | Navigate to Reflect (Quick Modules) | Reflection flow opens | Error |
+| 5.2 | Complete mood → energy → wins → challenges | Each step loads cleanly | Stuck on any step |
+| 5.3 | Submit reflection | Success state / returns to home | Loading forever |
+| 5.4 | AI feedback appears (if backend available) | Non-empty mentor feedback text | Empty / error |
+
+**Screenshot**: Reflection submitted with AI insight showing.
+
+---
+
+## T6: AI Mentor
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 6.1 | Open Mentor tab | Welcome message: "Ready, [name]..." | Error / empty |
+| 6.2 | Send: "I got distracted today. What should I do?" | Typing indicator → response < 20s | Timeout / crash |
+| 6.3 | Response structure | Contains Read: / Move: / Why: | Generic quote / empty |
+| 6.4 | Response is personalized | References carry tasks / patterns | Copy-paste template |
+
+**Offline test:**
+- Stop backend → send message → offline fallback text appears (not a crash)
+- Restart backend → next message uses backend normally
+
+**Screenshot**: Mentor response with Read:/Move:/Why: structure visible.
+
+---
+
+## T7: Cortex + Interventions
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 7.1 | Open Cortex (Quick Modules) | Behavior signals loaded | Error / blank |
+| 7.2 | View productivity state + burnout risk | Non-empty scores and labels | Empty |
+| 7.3 | Open Interventions | Active cards shown (if any) | Error |
+| 7.4 | Accept an intervention card | Status updates or card removes | Unresponsive |
+
+---
+
+## T8: Weekly Report
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 8.1 | Open Reports (Quick Modules) | Screen loads | Error |
+| 8.2 | Generate weekly report | Summary + wins + risks appear | Loading forever |
+| 8.3 | Offline fallback | Works if backend down | Crash / empty |
+
+---
+
+## T9: Logout and Data Persistence
+
+| Step | Action | Expected | Failure Sign |
+|---|---|---|---|
+| 9.1 | Open Profile | Name + discipline level correct | Wrong data |
+| 9.2 | Tap Logout | Returns to Welcome | Crash |
+| 9.3 | Log back in | Dashboard loads | Login fails |
+| 9.4 | Check Tasks | Previously created task visible | Empty (data loss) |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected |
+|---|---|
+| No network on launch | UI loads, shows offline state gracefully |
+| No tasks on fresh account | EmptyState with "Add task" CTA |
+| 500-char mentor message | Accepted, response returned |
+| Rapid double-tap "Send" | Only one message sent |
 
 ---
 
 ## Pass Criteria
 
-**Ready to demo**: T1–T5 pass on at least one physical device.  
-**Ready for beta**: T1–T8 + E1–E3 pass on Android and iOS.  
-**Production-ready**: All tests pass + App Check enforced + crash reporting active.
+| Tier | Requirement |
+|---|---|
+| **Demo-ready** | T1–T6 on one device/browser |
+| **Beta-ready** | T1–T9 on Android physical device + Expo Web |
+| **Production-ready** | All tests + edge cases + App Check enforced |
 
 ---
 
-## Device Coverage Targets
+## Bug Report Format
 
-| Platform | Priority | Status |
-|---|---|---|
-| Expo Web (Chrome) | High | Not formally tested |
-| Android physical device | High | Not tested |
-| iOS physical device | High | Not tested |
-| Android emulator | Medium | Not tested |
-| iOS simulator | Medium | Not tested |
+```
+Title: [Screen] - [Brief description]
+Severity: P0 / P1 / P2
+Device: [OS + version]
+Steps:
+1.
+2.
+Expected: [what should happen]
+Actual: [what happened]
+Screenshot: [attach]
+```
 
-Fill in test results here as each device is tested.
+## Device Coverage Status
+
+| Platform | Tested? |
+|---|---|
+| Expo Web (Chrome) | Not yet |
+| Android physical device | Not yet |
+| iOS physical device | Not yet |
+| Android emulator | Not yet |
+| iOS simulator | Not yet |

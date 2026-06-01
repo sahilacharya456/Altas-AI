@@ -15,6 +15,7 @@ Use this before every production deployment.
 | `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Yes | Number | |
 | `EXPO_PUBLIC_FIREBASE_APP_ID` | Yes | `1:xxx:android:xxx` | |
 | `EXPO_PUBLIC_ALTASAI_API_BASE_URL` | Yes | `https://api.altasai.app` | Change from localhost for production build |
+| `EXPO_PUBLIC_SENTRY_DSN` | No (P1) | `https://xxx@yyy.ingest.sentry.io/zzz` | Required for crash reporting. See `CRASH_REPORTING_SETUP.md` |
 
 **Warning:** Never use `EXPO_PUBLIC_ATLAS_API_BASE_URL` — that was a P0 bug that is now fixed. The correct name is `EXPO_PUBLIC_ALTASAI_API_BASE_URL`.
 

@@ -111,3 +111,6 @@ backend/ml-service/app/models/trained/*.tmp
 
 # Redis dump
 dump.rdb
+
+# Claude Code IDE files
+.claude/

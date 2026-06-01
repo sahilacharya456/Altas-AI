@@ -1,0 +1,22 @@
+[
+  {"text": "remind me to finish my FYP report tomorrow at 9 with high priority", "entities": ["taskTitle", "deadline", "time", "priority", "date"]},
+  {"text": "add portfolio case study today by 6 pm with critical priority", "entities": ["taskTitle", "deadline", "time", "priority", "date"]},
+  {"text": "schedule thesis writing next week at 10 am", "entities": ["taskTitle", "deadline", "time", "date"]},
+  {"text": "start focus for 25 minutes", "entities": ["duration"]},
+  {"text": "begin focus for 2 hours", "entities": ["duration"]},
+  {"text": "I spent 500 rupees today", "entities": ["amount", "currency", "date"]},
+  {"text": "spent pkr 1200 today on food", "entities": ["amount", "currency", "date"]},
+  {"text": "I feel distracted and stressed", "entities": ["mood", "stressLevel", "blocker"]},
+  {"text": "I am overwhelmed because I have too many tasks", "entities": ["mood", "stressLevel", "blocker"]},
+  {"text": "I keep delaying my report", "entities": ["blocker"]},
+  {"text": "analyze this screenshot of my timetable", "entities": ["screenshotType"]},
+  {"text": "scan this schedule screen", "entities": ["screenshotType"]},
+  {"text": "upload my PDF report", "entities": ["documentType"]},
+  {"text": "read this docx document", "entities": ["documentType"]},
+  {"text": "check this suspicious login link", "entities": ["securityConcern"]},
+  {"text": "I think this is a phishing scam", "entities": ["securityConcern"]},
+  {"text": "I slept badly and missed workout", "entities": ["healthHabit"]},
+  {"text": "track my water and exercise", "entities": ["healthHabit"]},
+  {"text": "show weekly progress report", "entities": ["reportRange"]},
+  {"text": "what should I do next", "entities": ["actionRequest"]}
+]

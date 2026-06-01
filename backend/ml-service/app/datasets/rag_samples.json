@@ -1,0 +1,5 @@
+[
+  {"id": "task-memory-1", "text": "The user repeatedly delays the FYP report when no first action is chosen.", "expectedQuery": "why do I keep delaying my report"},
+  {"id": "focus-memory-1", "text": "Twenty five minute focus sessions work better for the user than long unplanned sessions.", "expectedQuery": "what focus duration works for me"},
+  {"id": "goal-memory-1", "text": "Portfolio launch is blocked by inconsistent testing and unfinished documentation.", "expectedQuery": "what blocks my portfolio launch"}
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "label": "procrastination",
+    "keywords": ["wasted", "avoided", "delayed", "scrolling", "excuse", "didn't start"]
+  },
+  {
+    "label": "overloaded_task_list",
+    "keywords": ["too many tasks", "overwhelmed", "confused", "no idea where to start", "busy"]
+  },
+  {
+    "label": "burnout_risk",
+    "keywords": ["stressed", "exhausted", "low energy", "burnout", "tired", "drained"]
+  },
+  {
+    "label": "weak_planning",
+    "keywords": ["no plan", "random", "reactive", "forgot", "unclear"]
+  }
+]

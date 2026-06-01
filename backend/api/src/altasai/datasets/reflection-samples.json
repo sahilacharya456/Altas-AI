@@ -1,0 +1,22 @@
+[
+  {
+    "text": "I completed my main task but felt distracted after lunch.",
+    "sentiment": "positive",
+    "themes": ["execution", "distraction"]
+  },
+  {
+    "text": "I wasted the day, kept scrolling, and now I feel stressed.",
+    "sentiment": "negative",
+    "themes": ["procrastination", "stress", "digital_distraction"]
+  },
+  {
+    "text": "I had low energy but still finished one small task.",
+    "sentiment": "neutral",
+    "themes": ["low_energy", "small_win"]
+  },
+  {
+    "text": "Too many tasks made me confused and I avoided starting.",
+    "sentiment": "negative",
+    "themes": ["overload", "avoidance"]
+  }
+]

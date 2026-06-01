@@ -1,0 +1,51 @@
+[
+  {
+    "text": "remind me to finish my FYP report tomorrow",
+    "expectedIntent": "create_task",
+    "expectedEntities": { "taskTitle": "finish my FYP report", "deadline": "tomorrow" }
+  },
+  {
+    "text": "start focus for 25 minutes",
+    "expectedIntent": "start_focus",
+    "expectedEntities": { "focusDuration": 25 }
+  },
+  {
+    "text": "I wasted my whole day and avoided my important task",
+    "expectedIntent": "reflect_day",
+    "expectedPattern": "procrastination"
+  },
+  {
+    "text": "what should I do next?",
+    "expectedIntent": "ask_productivity_advice",
+    "expectedRecommendation": "prioritize_urgent_task"
+  },
+  {
+    "text": "show my weekly progress",
+    "expectedIntent": "generate_report"
+  },
+  {
+    "text": "I spent too much money today",
+    "expectedIntent": "finance_check",
+    "expectedEntities": { "category": "finance" }
+  },
+  {
+    "text": "I am stressed because I have too many tasks",
+    "expectedIntent": "ask_productivity_advice",
+    "expectedPattern": "overloaded_task_list"
+  },
+  {
+    "text": "scan this suspicious login link",
+    "expectedIntent": "security_check",
+    "expectedEntities": { "securityConcern": "suspicious login link" }
+  },
+  {
+    "text": "analyze my goal to become consistent with gym",
+    "expectedIntent": "analyze_goal",
+    "expectedEntities": { "goalTitle": "become consistent with gym" }
+  },
+  {
+    "text": "I feel distracted and low energy",
+    "expectedIntent": "health_check",
+    "expectedPattern": "burnout_risk"
+  }
+]

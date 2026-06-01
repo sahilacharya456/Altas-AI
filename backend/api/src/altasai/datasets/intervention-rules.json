@@ -1,0 +1,34 @@
+[
+  {
+    "id": "reduce_overload",
+    "pattern": "overloaded_task_list",
+    "priority": "high",
+    "title": "Reduce today's load",
+    "action": "Pick three tasks, defer the rest, and start the smallest high-priority action.",
+    "expectedBenefit": "Reduces decision fatigue and creates visible progress."
+  },
+  {
+    "id": "start_focus_block",
+    "pattern": "procrastination",
+    "priority": "high",
+    "title": "Start a short focus block",
+    "action": "Run a 25-minute focus session on one task before adding new work.",
+    "expectedBenefit": "Turns avoidance into measurable execution."
+  },
+  {
+    "id": "write_reflection",
+    "pattern": "weak_planning",
+    "priority": "medium",
+    "title": "Close the loop with reflection",
+    "action": "Write a short reflection and choose tomorrow's first action.",
+    "expectedBenefit": "Improves planning quality for the next day."
+  },
+  {
+    "id": "protect_recovery",
+    "pattern": "burnout_risk",
+    "priority": "high",
+    "title": "Protect recovery before adding pressure",
+    "action": "Cut the task list, finish one essential task, and schedule sleep or recovery.",
+    "expectedBenefit": "Prevents false productivity while preserving consistency."
+  }
+]

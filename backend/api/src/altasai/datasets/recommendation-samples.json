@@ -1,0 +1,17 @@
+[
+  {
+    "input": "I have too many pending tasks and feel overwhelmed",
+    "expectedTop3": ["reduce_workload", "prioritize_urgent_task", "deadline_risk_rescope"],
+    "explanation": "Overload should produce workload reduction or prioritization."
+  },
+  {
+    "input": "I keep delaying my work and scrolling",
+    "expectedTop3": ["start_focus_block", "prioritize_urgent_task", "deadline_risk_rescope"],
+    "explanation": "Procrastination should produce a small execution intervention."
+  },
+  {
+    "input": "I feel exhausted and low energy",
+    "expectedTop3": ["protect_recovery", "reduce_overload", "deadline_risk_rescope"],
+    "explanation": "Burnout or overload language should avoid aggressive productivity advice."
+  }
+]

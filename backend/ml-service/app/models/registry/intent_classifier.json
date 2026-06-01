@@ -1,0 +1,8 @@
+{
+  "name": "intent_classifier",
+  "updatedAt": "2026-06-01T11:10:11.825004+00:00",
+  "accuracy": 1.0,
+  "macroF1": 1.0,
+  "sampleCount": 65,
+  "modelType": "tfidf_logistic_regression"
+}

@@ -1,0 +1,10 @@
+[
+  {"context": {"deadlineRiskScore": 88, "workloadScore": 72, "stressSignalScore": 60}, "recommendation": "prioritize_urgent_task", "action": "completed", "reward": 1.0},
+  {"context": {"burnoutRiskScore": 82, "workloadScore": 85, "stressSignalScore": 78}, "recommendation": "reduce_workload", "action": "helpful", "reward": 1.0},
+  {"context": {"planningNeedScore": 80, "workloadScore": 66}, "recommendation": "break_task", "action": "accepted", "reward": 0.6},
+  {"context": {"executionReadinessScore": 75, "focusScore": 70}, "recommendation": "start_focus", "action": "completed", "reward": 1.0},
+  {"context": {"goalProgressScore": 30, "consistencyScore": 42}, "recommendation": "review_goal", "action": "accepted", "reward": 0.6},
+  {"context": {"stressSignalScore": 74, "reflectionMoodScore": 35}, "recommendation": "write_reflection", "action": "helpful", "reward": 1.0},
+  {"context": {"consistencyScore": 78, "focusScore": 68}, "recommendation": "generate_report", "action": "dismissed", "reward": -0.25},
+  {"context": {"planningNeedScore": 75, "stressSignalScore": 50}, "recommendation": "mentor_plan", "action": "completed", "reward": 1.0}
+]

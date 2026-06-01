@@ -1,0 +1,39 @@
+{
+  "name": "altasai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AltasAI - Personal Discipline, Focus & Life Operating System",
+  "workspaces": [
+    "apps/mobile",
+    "backend/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace=apps/mobile",
+    "mobile:android": "npm run android --workspace=apps/mobile",
+    "mobile:ios": "npm run ios --workspace=apps/mobile",
+    "api": "npm run dev --workspace=@altasai/backend",
+    "api:build": "npm run build --workspace=@altasai/backend",
+    "api:start": "npm run start --workspace=@altasai/backend",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "evaluate:altasai": "npm run evaluate:altasai --workspace=@altasai/backend",
+    "ml:train": "cd backend/ml-service && python -m app.classical_ml.train_intent_classifier",
+    "ml:evaluate": "cd backend/ml-service && python -m app.evaluation.evaluation_runner",
+    "ml:test": "cd backend/ml-service && python -m pytest",
+    "load:backend": "k6 run scripts/load/backend-api.js",
+    "load:ml": "k6 run scripts/load/ml-service.js",
+    "emulator:seed": "node scripts/seed-demo-data.js",
+    "clean": "npm run clean --workspaces --if-present && rimraf node_modules"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "metro-runtime": "^0.84.4"
+  }
+}

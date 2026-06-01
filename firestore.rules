@@ -1,0 +1,375 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helper Functions ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function validateString(value, maxLen) {
+      return value is string 
+        && value.size() >= 1 
+        && value.size() <= maxLen;
+    }
+
+    function validateOptionalString(value, maxLen) {
+      return value == null || (value is string && value.size() <= maxLen);
+    }
+
+    function validateArray(value, maxItems) {
+      return value is list && value.size() <= maxItems;
+    }
+
+    function validateOptionalArray(value, maxItems) {
+      return value == null || (value is list && value.size() <= maxItems);
+    }
+
+    function docSizeOk() {
+      return request.resource.size() < 100000; // 100KB hard limit
+    }
+
+    // --- Document Validators ---
+
+    function validateTask(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && validateString(d.title, 500)
+        && validateOptionalString(d.description, 2000)
+        && d.category in ['career', 'health', 'fitness', 'study', 'personal', 'routine']
+        && d.priority in ['low', 'medium', 'high', 'critical']
+        && d.status in ['pending', 'in_progress', 'completed', 'carried', 'cancelled']
+        && d.estimatedMinutes is int
+        && validateOptionalArray(d.tags, 20);
+    }
+
+    function validateGoal(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && validateString(d.title, 500)
+        && validateOptionalString(d.description, 2000)
+        && d.category in ['career', 'health', 'fitness', 'study', 'personal']
+        && d.priority in ['low', 'medium', 'high', 'critical']
+        && d.status in ['active', 'paused', 'completed', 'abandoned']
+        && d.progress is int
+        && d.progress >= 0
+        && d.progress <= 100
+        && validateOptionalArray(d.milestones, 50)
+        && validateOptionalArray(d.aiBreakdown, 50);
+    }
+
+    function validateLog(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && d.mood is int && d.mood >= 1 && d.mood <= 5
+        && d.energyLevel is int && d.energyLevel >= 1 && d.energyLevel <= 5
+        && validateArray(d.wins, 20)
+        && validateArray(d.struggles, 20)
+        && validateOptionalArray(d.excusesMade, 20)
+        && validateString(d.honestAssessment, 2000)
+        && validateOptionalString(d.tomorrowPriority, 2000)
+        && d.tasksCompleted is int
+        && d.tasksMissed is int;
+    }
+
+    function validateExpense(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && d.amount is number && d.amount > 0
+        && d.category in ['food', 'transport', 'study', 'rent', 'entertainment', 'misc']
+        && validateOptionalString(d.note, 500);
+    }
+
+    function validateKhataEntry(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && validateString(d.personName, 200)
+        && d.amount is number && d.amount > 0
+        && d.type in ['borrowed', 'lent']
+        && d.status in ['pending', 'partial', 'settled']
+        && validateOptionalString(d.note, 500);
+    }
+
+    function validateBehaviorEvent(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && d.source in ['tasks', 'goals', 'reflection', 'finance', 'health', 'digital', 'security', 'focus', 'mentor', 'system']
+        && validateString(d.eventType, 120)
+        && d.severity in ['low', 'medium', 'high', 'critical']
+        && validateString(d.title, 500)
+        && validateString(d.message, 2000);
+    }
+
+    function validateIntervention(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && d.type in ['task', 'goal', 'finance', 'health', 'digital', 'security', 'reflection', 'focus', 'system']
+        && d.severity in ['low', 'medium', 'high', 'critical']
+        && validateString(d.title, 500)
+        && validateString(d.reason, 2000)
+        && validateString(d.recommendedAction, 2000)
+        && validateArray(d.sourceSignals, 20)
+        && d.status in ['active', 'accepted', 'ignored', 'completed', 'expired'];
+    }
+
+    function validateBudget(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && validateString(d.month, 20)
+        && d.totalBudget is number
+        && d.totalBudget >= 0
+        && d.spent is number
+        && d.spent >= 0;
+    }
+
+    function validateHealthLog(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && d.sleepHours is number && d.sleepHours >= 0 && d.sleepHours <= 12
+        && d.waterGlasses is int && d.waterGlasses >= 0 && d.waterGlasses <= 20
+        && d.workoutMinutes is int && d.workoutMinutes >= 0 && d.workoutMinutes <= 180
+        && d.workoutType in ['cardio', 'strength', 'yoga', 'rest', 'other']
+        && d.energyLevel is int && d.energyLevel >= 1 && d.energyLevel <= 5
+        && d.overallHealth is int && d.overallHealth >= 1 && d.overallHealth <= 5
+        && (d.stressLevel == null || (d.stressLevel is int && d.stressLevel >= 1 && d.stressLevel <= 5))
+        && (d.routineScore == null || (d.routineScore is int && d.routineScore >= 0 && d.routineScore <= 100))
+        && validateOptionalString(d.notes, 500);
+    }
+
+    function validateDigitalUsage(userId) {
+      let d = request.resource.data;
+      return docSizeOk()
+        && d.userId == userId
+        && d.screenMinutes is int && d.screenMinutes >= 0 && d.screenMinutes <= 720
+        && d.goalMinutes is int && d.goalMinutes >= 1 && d.goalMinutes <= 720
+        && d.exceeded is bool
+        && (d.distractionScore == null || (d.distractionScore is int && d.distractionScore >= 0 && d.distractionScore <= 100))
+        && (d.appCategory == null || d.appCategory in ['social', 'entertainment', 'work', 'study', 'finance', 'health', 'security', 'other'])
+        && validateOptionalString(d.notes, 500);
+    }
+
+    // --- User Profile ---
+    match /users/{userId}/profile/{document=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && docSizeOk();
+      allow delete: if false;
+    }
+    
+    // --- Tasks ---
+    match /users/{userId}/tasks/{taskId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateTask(userId);
+      allow update: if isOwner(userId) && validateTask(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Focus Sessions
+    match /users/{userId}/focusSessions/{sessionId} {
+      allow read, create, update: if isOwner(userId) && docSizeOk();
+      allow delete: if false;
+    }
+
+    // Behavior Events
+    match /users/{userId}/behaviorEvents/{eventId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateBehaviorEvent(userId);
+      allow update, delete: if false;
+    }
+    
+    // --- Goals ---
+    match /users/{userId}/goals/{goalId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateGoal(userId);
+      allow update: if isOwner(userId) && validateGoal(userId);
+      allow delete: if isOwner(userId);
+    }
+    
+    // --- Daily Logs (Reflections) ---
+    match /users/{userId}/dailyLogs/{logId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateLog(userId);
+      allow update: if isOwner(userId) && validateLog(userId);
+      allow delete: if false;
+    }
+    
+    // --- Conversations (AI Mentor) ---
+    // Read-only for clients. Writes flow through the authenticated Express backend API.
+    match /users/{userId}/conversations/{conversationId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+    
+    // --- AI Cortex State (server-written aggregated context) ---
+    match /users/{userId}/ai_cortex_state {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Cortex summaries (server-written deterministic behavior intelligence)
+    match /users/{userId}/cortex/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Proactive Interventions
+    match /users/{userId}/interventions/{interventionId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateIntervention(userId);
+      allow update: if isOwner(userId)
+        && validateIntervention(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'completedAt', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // --- Analytics ---
+    // Intelligence Reports (server-written daily/weekly/monthly artifacts)
+    match /users/{userId}/reports/{reportId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/analytics/{document=**} {
+      allow read, create, update: if isOwner(userId) && docSizeOk();
+      allow delete: if false;
+    }
+
+    // --- Security Events ---
+    match /users/{userId}/securityEvents/{eventId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.type in ['phishing_attempt', 'suspicious_url', 'behavior_alert']
+        && request.resource.data.resolved == false
+        && docSizeOk();
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resolved', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // --- Security Scans ---
+    match /users/{userId}/securityScans/{scanId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && docSizeOk();
+      allow update, delete: if false;
+    }
+
+    // --- Link Analysis Cache ---
+    match /users/{userId}/linkAnalysis/{analysisId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && docSizeOk();
+      allow update, delete: if false;
+    }
+    
+    // --- Digital Usage ---
+    match /users/{userId}/digitalUsage/{usageId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validateDigitalUsage(userId);
+      allow delete: if false;
+    }
+    
+    // --- Health Logs ---
+    match /users/{userId}/healthLogs/{logId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validateHealthLog(userId);
+      allow delete: if false;
+    }
+    
+    // --- Smart Khata - Expenses ---
+    match /users/{userId}/expenses/{expenseId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateExpense(userId);
+      allow update: if isOwner(userId) && validateExpense(userId);
+      allow delete: if isOwner(userId);
+    }
+    
+    // --- Smart Khata - Borrow/Lend Ledger ---
+    match /users/{userId}/khata/{entryId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validateKhataEntry(userId);
+      allow update: if isOwner(userId) && validateKhataEntry(userId);
+      allow delete: if isOwner(userId);
+    }
+    
+    // --- Smart Khata - Monthly Budgets ---
+    match /users/{userId}/budgets/{budgetId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validateBudget(userId);
+      allow delete: if false;
+    }
+
+    // --- Smart Khata - Budget Alerts ---
+    match /users/{userId}/budgetAlerts/{alertId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && docSizeOk();
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
+    }
+
+    // --- AI Feedback (written by authenticated backend API only) ---
+    match /users/{userId}/aiFeedback/{feedbackId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Recommendation learning events and aggregates are backend-written. Clients
+    // submit feedback through the authenticated API so UID ownership and abuse
+    // controls are enforced server-side.
+    match /users/{userId}/recommendationFeedback/{feedbackId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/recommendationStats/{statId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // AI Gateway metadata logs are server-written only. They may contain model
+    // provider and fallback metadata, but never raw prompts or secrets.
+    match /users/{userId}/aiGatewayLogs/{logId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Legacy AI report callables write here. Client reads should use the
+    // curated reports collection unless a specific screen opts into this path.
+    match /users/{userId}/aiReports/{reportId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // --- AI Parse Errors (server-side debug log) ---
+    match /ai_parse_errors/{errorId} {
+      allow read, write: if false;
+    }
+
+    // --- Rate Limits (server-side only) ---
+    match /rateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    // --- Server Quotas (backend-written only, client must never write) ---
+    match /serverQuotas/{docId} {
+      allow read, write: if false;
+    }
+    
+    // --- Deny all other access ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

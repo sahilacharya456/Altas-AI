@@ -1,0 +1,22 @@
+[
+  {
+    "input": "remind me to finish my FYP report tomorrow at 9 with high priority",
+    "expectedEntities": ["taskTitle", "deadline", "time", "priority"],
+    "explanation": "Task command with deadline, time, and priority."
+  },
+  {
+    "input": "I spent 500 rupees today",
+    "expectedEntities": ["moneyAmount", "deadline"],
+    "explanation": "Finance signal with amount and date."
+  },
+  {
+    "input": "start focus for 25 minutes",
+    "expectedEntities": ["duration"],
+    "explanation": "Focus duration extraction."
+  },
+  {
+    "input": "I feel distracted and stressed",
+    "expectedEntities": ["mood", "productivityBlocker"],
+    "explanation": "Reflection mood and blocker extraction."
+  }
+]

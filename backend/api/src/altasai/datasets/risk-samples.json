@@ -1,0 +1,28 @@
+[
+  {
+    "label": "critical workload and overdue task",
+    "memory": {
+      "tasks": [
+        { "title": "Submit report", "status": "pending", "priority": "critical", "scheduledDateOffsetDays": -1, "carryCount": 2, "isCarried": true },
+        { "title": "Record demo", "status": "pending", "priority": "high", "scheduledDateOffsetDays": 0 }
+      ],
+      "goals": [{ "title": "Launch portfolio", "status": "active", "progress": 10 }],
+      "reflections": [{ "honestAssessment": "I am stressed and avoiding work." }],
+      "focusSessions": []
+    },
+    "expectedDeadlineRisk": "critical"
+  },
+  {
+    "label": "stable execution",
+    "memory": {
+      "tasks": [
+        { "title": "Write notes", "status": "completed", "priority": "medium", "scheduledDateOffsetDays": 0 },
+        { "title": "Plan tomorrow", "status": "pending", "priority": "low", "scheduledDateOffsetDays": 1 }
+      ],
+      "goals": [{ "title": "Study routine", "status": "active", "progress": 65 }],
+      "reflections": [{ "honestAssessment": "I finished work and feel focused." }],
+      "focusSessions": [{ "durationMinutes": 25, "status": "completed" }]
+    },
+    "expectedDeadlineRisk": "low"
+  }
+]

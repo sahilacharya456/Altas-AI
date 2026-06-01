@@ -1,0 +1,14 @@
+[
+  {
+    "input": "show my weekly progress",
+    "expectedLabel": "generate_report",
+    "expectedRecommendation": "Generate report from real task, focus, reflection, and goal signals.",
+    "explanation": "Reports must be generated from stored user data, not static text."
+  },
+  {
+    "input": "I completed 3 tasks today",
+    "expectedLabel": "execution_momentum",
+    "expectedRecommendation": "Protect momentum by selecting the next ranked task.",
+    "explanation": "Completion signal should affect productivity score and report summary."
+  }
+]

@@ -1,6 +1,6 @@
 # Firestore Rules Test Blocker
 
-## Status: BLOCKED — Java 17 installed, Java 21 required
+## Status: ✅ UNBLOCKED — Java 21.0.11 installed 2026-06-01. All 5 rules tests PASS.
 
 ## Exact Error
 
@@ -11,22 +11,35 @@ Please install a JDK at version 21 or above to get a compatible runtime.
 
 Detected: `java version "17.0.12"` — need `21.x`.
 
-## Test Coverage That IS Working
+## Verified Test Results (2026-06-01)
 
-The rules tests themselves (`src/__tests__/firestore.rules.test.ts`) are complete and cover:
+```
+PASS src/__tests__/firestore.rules.test.ts
+  Firestore security rules
+    ✓ users can read and write only their own profile document (848ms)
+    ✓ unauthenticated users are denied (83ms)
+    ✓ tasks, goals, and reflections enforce ownership and schema (146ms)
+    ✓ client cannot write server-owned AI collections (138ms)
+    ✓ interventions are client-readable, status-updatable only (107ms)
+Tests: 5/5 passed
+Java: OpenJDK 21.0.11 (Adoptium Temurin)
+```
 
-| Test | Status |
-|---|---|
-| User can read/write only their own profile | Would PASS (skipped locally) |
-| Unauthenticated users are denied | Would PASS (skipped locally) |
-| Tasks/goals/reflections enforce ownership and schema | Would PASS (skipped locally) |
-| Client cannot write server-owned AI collections | Would PASS (skipped locally) |
-| Interventions: status-update only | Would PASS (skipped locally) |
+Run command:
+```bash
+# Java 21 must be on PATH
+npm run test:rules --workspace=@altasai/backend
+```
 
-The `describeRules = process.env.FIRESTORE_EMULATOR_HOST ? describe : describe.skip` pattern means:
-- **Locally (no Java 21)**: All 5 rules tests are auto-skipped. Suite runs but skips gracefully.
-- **In CI (GitHub Actions, Java 21 installed)**: All 5 rules tests run and pass.
-- **Result**: These tests PASS in CI even though blocked locally.
+## How to Run (Java 21 installed at Adoptium path)
+
+If PATH still points to old Java, set it for the session:
+```bash
+export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot"
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version  # verify: openjdk 21.0.11
+npm run test:rules --workspace=@altasai/backend
+```
 
 ## Unblock Locally: Install Java 21
 

@@ -5,14 +5,20 @@ Use before every demo, beta user invite, or code push to production.
 ## Automated (Run Every Time — Takes 60 Seconds)
 
 ```bash
-npm run typecheck --workspaces --if-present   # Must pass: 0 errors
-npm test --workspaces --if-present             # Must pass: 46/46 tests
-npm run build --workspace=@altasai/backend     # Must pass: clean build
-npx eslint src --ext .ts,.tsx --max-warnings 0 # (from apps/mobile directory)
-npm audit --audit-level=high                   # Must pass: 0 high severity
+npm run typecheck --workspaces --if-present        # Must pass: 0 errors
+npm test --workspaces --if-present                 # Must pass: 57/57 tests
+npm run test:rules --workspace=@altasai/backend    # Requires Java 21 — 5/5 rules tests
+npm run build --workspace=@altasai/backend         # Must pass: clean build
+npx eslint src --ext .ts,.tsx --max-warnings 0     # (from apps/mobile directory)
+npm audit --audit-level=high                       # Must pass: 0 high severity
+npm run evaluate:altasai --workspace=@altasai/backend  # Must pass: 7/7 model evals
+npm run ml:train && npm run ml:evaluate && npm run ml:test  # Must pass: all ML
 ```
 
-Current baseline: ✅ 0 errors, ✅ 46/46 pass, ✅ build clean, ✅ 0 lint warnings, ✅ 0 high vulns
+Current baseline (2026-06-01):
+✅ 0 ts errors | ✅ 57/57 jest tests | ✅ 5/5 firestore rules | ✅ build clean
+✅ 0 lint warnings | ✅ 0 high vulns | ✅ 7/7 model evals | ✅ 9/9 ML tests
+✅ Java 21.0.11 installed (Adoptium Temurin)
 
 ## Manual (Before Demo)
 

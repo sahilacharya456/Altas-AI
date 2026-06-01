@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { ALTASAI_COLORS, ALTASAI_SPACING, ALTASAI_TYPOGRAPHY, ALTASAI_RADIUS } from '../../theme';
 
 interface ProgressBarProps {
-  progress: number; // 0 to 1
+  progress: number;
   showPercentage?: boolean;
   height?: 'sm' | 'md' | 'lg';
   color?: 'primary' | 'success' | 'warning' | 'error' | 'accent';
@@ -19,39 +20,61 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const clampedProgress = Math.min(1, Math.max(0, progress));
   const percentage = Math.round(clampedProgress * 100);
 
-  const heightClasses = {
-    sm: 'h-1',
-    md: 'h-2',
-    lg: 'h-3',
-  };
-
-  const colorClasses = {
-    primary: 'bg-primary',
-    success: 'bg-success',
-    warning: 'bg-warning',
-    error: 'bg-error',
-    accent: 'bg-accent',
-  };
+  const heightStyle = heightStyles[height];
+  const barColor = colorMap[color];
 
   return (
-    <View className="w-full">
+    <View style={styles.container}>
       {(label || showPercentage) && (
-        <View className="flex-row justify-between mb-2">
-          {label && (
-            <Text className="text-text-secondary text-sm">{label}</Text>
-          )}
-          {showPercentage && (
-            <Text className="text-text-secondary text-sm">{percentage}%</Text>
-          )}
+        <View style={styles.labelRow}>
+          {label && <Text style={styles.labelText}>{label}</Text>}
+          {showPercentage && <Text style={styles.labelText}>{percentage}%</Text>}
         </View>
       )}
 
-      <View className={`w-full bg-surface-elevated rounded-full overflow-hidden ${heightClasses[height]}`}>
+      <View style={[styles.track, heightStyle]}>
         <View
-          className={`${heightClasses[height]} ${colorClasses[color]} rounded-full`}
-          style={{ width: `${percentage}%` }}
+          style={[styles.fill, heightStyle, { width: `${percentage}%`, backgroundColor: barColor }]}
         />
       </View>
     </View>
   );
 };
+
+const colorMap: Record<string, string> = {
+  primary: ALTASAI_COLORS.accent.primary,
+  success: ALTASAI_COLORS.success.primary,
+  warning: ALTASAI_COLORS.warning.primary,
+  error: ALTASAI_COLORS.error.primary,
+  accent: ALTASAI_COLORS.accent.bright,
+};
+
+const heightStyles: Record<string, ViewStyle> = {
+  sm: { height: 4 },
+  md: { height: 8 },
+  lg: { height: 12 },
+};
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: ALTASAI_SPACING[2],
+  },
+  labelText: {
+    color: ALTASAI_COLORS.text.secondary,
+    fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+  },
+  track: {
+    width: '100%',
+    backgroundColor: ALTASAI_COLORS.surface.raised,
+    borderRadius: ALTASAI_RADIUS.full,
+    overflow: 'hidden',
+  },
+  fill: {
+    borderRadius: ALTASAI_RADIUS.full,
+  },
+});

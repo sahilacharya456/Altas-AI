@@ -206,9 +206,9 @@ const InteractiveParticle = React.memo(({
 
         return {
             transform: [
-                { translateX: baseX + offsetX },
-                { translateY: baseY + offsetY },
-                { scale: scaleBoost },
+                { translateX: baseX + offsetX } as const,
+                { translateY: baseY + offsetY } as const,
+                { scale: scaleBoost } as const,
             ],
             opacity: (twinkle.value + opacityBoost) * (0.6 + isPressed.value * 0.4),
         };
@@ -270,9 +270,9 @@ const FloatingOrb = React.memo(({ color }: { color: string }) => {
 
     const style = useAnimatedStyle(() => ({
         transform: [
-            { translateX: translateX.value },
-            { translateY: translateY.value },
-            { scale: scale.value },
+            { translateX: translateX.value } as const,
+            { translateY: translateY.value } as const,
+            { scale: scale.value } as const,
         ],
     }));
 
@@ -302,9 +302,9 @@ const TouchGlow = React.memo(({
 }) => {
     const glowStyle = useAnimatedStyle(() => ({
         transform: [
-            { translateX: touchX.value - 60 },
-            { translateY: touchY.value - 60 },
-            { scale: 0.5 + isPressed.value * 0.5 },
+            { translateX: touchX.value - 60 } as const,
+            { translateY: touchY.value - 60 } as const,
+            { scale: 0.5 + isPressed.value * 0.5 } as const,
         ],
         opacity: isPressed.value * 0.25,
     }));

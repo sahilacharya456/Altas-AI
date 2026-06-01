@@ -96,8 +96,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 
   const shimmerStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: interpolate(shimmerPosition.value, [-1, 1], [-SCREEN_WIDTH, SCREEN_WIDTH]) },
-      { rotate: '25deg' },
+      { translateX: interpolate(shimmerPosition.value, [-1, 1], [-SCREEN_WIDTH, SCREEN_WIDTH]) } as const,
+      { rotate: '25deg' } as const,
     ],
     opacity: 0.1,
   }));

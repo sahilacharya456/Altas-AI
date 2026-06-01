@@ -63,8 +63,8 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
 
   const labelStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: interpolate(labelAnim.value, [0, 1], [0, -28]) },
-      { scale: interpolate(labelAnim.value, [0, 1], [1, 0.85]) },
+      { translateY: interpolate(labelAnim.value, [0, 1], [0, -28]) } as const,
+      { scale: interpolate(labelAnim.value, [0, 1], [1, 0.85]) } as const,
     ],
     color: interpolateColor(
       focusAnim.value,

@@ -105,7 +105,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
 
     return {
       transform: [
-        { translateX: translateX.value },
+        { translateX: translateX.value } as const,
         {
           rotate: `${interpolate(
             translateX.value,
@@ -113,8 +113,8 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
             [-8, 0, 8],
             Extrapolation.CLAMP
           )}deg`,
-        },
-        { scale: elevationScale },
+        } as const,
+        { scale: elevationScale } as const,
       ],
     };
   });

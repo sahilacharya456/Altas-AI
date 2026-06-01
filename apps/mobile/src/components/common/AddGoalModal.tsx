@@ -121,7 +121,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                 <View style={styles.content}>
                     <View style={styles.header}>
                         <Text style={styles.title}>New Vision</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                        <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close modal">
                             <Text style={styles.closeButtonText}>✕</Text>
                         </TouchableOpacity>
                     </View>
@@ -166,6 +166,9 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                                             category === c.id && styles.categoryChipSelected
                                         ]}
                                         onPress={() => setCategory(c.id)}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Set category to ${c.label}`}
+                                        accessibilityState={{ selected: category === c.id }}
                                     >
                                         <Text style={styles.categoryIcon}>{c.icon}</Text>
                                         <Text
@@ -200,6 +203,9 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                                             priority === p.id && { backgroundColor: p.color + '20', borderColor: p.color }
                                         ]}
                                         onPress={() => setPriority(p.id)}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Set priority to ${p.label}`}
+                                        accessibilityState={{ selected: priority === p.id }}
                                     >
                                         <Text
                                             style={[

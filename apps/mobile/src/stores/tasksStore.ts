@@ -77,25 +77,32 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         set({ isLoading: true, userId });
 
         // Subscribe to today's tasks
-        const unsubscribe = subscribeToTodaysTasks(userId, (tasks) => {
-            set({ tasks, isLoading: false });
+        const unsubscribe = subscribeToTodaysTasks(
+            userId,
+            (tasks) => {
+                set({ tasks, isLoading: false, error: null });
 
-            // Update summary
-            const completed = tasks.filter(t => t.status === 'completed').length;
-            const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
-            const carried = tasks.filter(t => t.status === 'carried').length;
-            const total = tasks.length;
+                // Update summary
+                const completed = tasks.filter(t => t.status === 'completed').length;
+                const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
+                const carried = tasks.filter(t => t.status === 'carried').length;
+                const total = tasks.length;
 
-            set({
-                summary: {
-                    total,
-                    completed,
-                    pending,
-                    carried,
-                    completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-                },
-            });
-        });
+                set({
+                    summary: {
+                        total,
+                        completed,
+                        pending,
+                        carried,
+                        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+                    },
+                });
+            },
+            (error) => {
+                const message = error instanceof Error ? error.message : 'Failed to load tasks';
+                set({ error: message, isLoading: false });
+            }
+        );
 
         // Load carried tasks
         get().loadCarriedTasks();

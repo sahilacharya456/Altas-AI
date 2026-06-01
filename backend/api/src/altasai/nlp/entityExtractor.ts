@@ -9,6 +9,10 @@ import { durationPattern, clockTimePattern } from '../regex/timePatterns';
 import { taskTitlePattern } from '../regex/taskPatterns';
 
 export const extractEntities = (text: string, now = new Date()): ExtractedEntity[] => {
+  // Guard against ReDoS on pathologically long inputs before any regex runs.
+  const safeText = text.length > 2000 ? text.slice(0, 2000) : text;
+  // eslint-disable-next-line no-param-reassign
+  text = safeText;
   const entities: ExtractedEntity[] = [];
 
   const duration = text.match(durationPattern);

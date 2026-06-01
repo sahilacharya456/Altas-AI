@@ -39,16 +39,17 @@ export const ALTASAI_TYPOGRAPHY = {
         relaxed: 1.75,
     },
 
-    // Letter spacing is intentionally neutral for mobile readability.
+    // Letter spacing for premium typographic hierarchy.
+    // Labels and eyebrows use wide tracking; body stays neutral.
     tracking: {
-        tighter: 0,
-        tight: 0,
+        tighter: -0.5,
+        tight: -0.3,
         normal: 0,
-        wide: 0,
+        wide: 0.8,
+        wider: 1.5,
+        widest: 2.5,
     },
 } as const;
-
-
 
 // Export unified typography
 export const typography = ALTASAI_TYPOGRAPHY;

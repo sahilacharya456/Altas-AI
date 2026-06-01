@@ -11,8 +11,11 @@
       "@/*": [
         "src/*"
       ],
-      "@app/*": [
-        "src/app/*"
+      "@navigation/*": [
+        "src/navigation/*"
+      ],
+      "@providers/*": [
+        "src/providers/*"
       ],
       "@features/*": [
         "src/features/*"

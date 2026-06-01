@@ -41,7 +41,7 @@ export const AppHeader = ({
           hitSlop={8}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>‹</Text>
+          <Text style={styles.backText} accessibilityElementsHidden>←</Text>
         </Pressable>
       ) : left}
       <View style={styles.titleBlock}>
@@ -81,14 +81,14 @@ const styles = StyleSheet.create({
     color: ALTASAI_COLORS.accent.bright,
     fontSize: ALTASAI_TYPOGRAPHY.size.xs,
     fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
-    letterSpacing: ALTASAI_TYPOGRAPHY.tracking.normal,
+    letterSpacing: ALTASAI_TYPOGRAPHY.tracking.wider,
     textTransform: 'uppercase',
   },
   title: {
     color: ALTASAI_COLORS.text.primary,
     fontSize: ALTASAI_TYPOGRAPHY.size['2xl'],
     fontWeight: ALTASAI_TYPOGRAPHY.weight.bold,
-    letterSpacing: ALTASAI_TYPOGRAPHY.tracking.normal,
+    letterSpacing: ALTASAI_TYPOGRAPHY.tracking.tight,
   },
   subtitle: {
     marginTop: 2,
@@ -108,8 +108,9 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: ALTASAI_COLORS.text.primary,
-    fontSize: 32,
-    lineHeight: 34,
+    fontSize: ALTASAI_TYPOGRAPHY.size.xl,
+    lineHeight: ALTASAI_TYPOGRAPHY.size.xl * 1.2,
+    fontWeight: ALTASAI_TYPOGRAPHY.weight.medium,
   },
   right: {
     alignItems: 'flex-end',

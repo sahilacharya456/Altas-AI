@@ -1,8 +1,8 @@
 import 'react-native-gesture-handler';
 import '../global.css';
 
-import { RootNavigator } from '../src/app/navigation';
-import { AppProviders } from '../src/app/providers';
+import { RootNavigator } from '../src/navigation';
+import { AppProviders } from '../src/providers';
 
 export default function RootLayout() {
   return (

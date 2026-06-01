@@ -59,7 +59,7 @@ export default function HomeScreen() {
             day: 'numeric',
           })}
           title={`${getGreeting()}, ${firstName}`}
-          subtitle="What should you do today, what is the risk, and what should you avoid?"
+          subtitle="Today's priority, risk level, and one action to avoid."
           right={
             <DisciplineBadge
               mode={profile?.disciplineLevel === 'ruthless' ? 'strict' : profile?.disciplineLevel === 'mentor' ? 'calm' : 'firm'}
@@ -79,13 +79,13 @@ export default function HomeScreen() {
       ) : null}
 
       <Animated.View entering={altasaiCardEntrance(1)}>
-        <CommandCard eyebrow="AltasAI Core" title="Cortex is tracking today's signal.">
+        <CommandCard eyebrow="AltasAI Core" title="Behavior intelligence active.">
           <View style={styles.coreBriefing}>
             <AltasAICoreVisual size={132} label="Daily command signal" />
             <View style={styles.coreCopy}>
-              <Text style={styles.coreTitle}>Discipline, measured.</Text>
+              <Text style={styles.coreTitle}>Your execution, analyzed.</Text>
               <Text style={styles.coreText}>
-                AltasAI reads execution load, carry debt, and momentum before it asks you to choose another task.
+                AltasAI tracks your tasks, focus sessions, and patterns to give you one concrete next move — no guessing.
               </Text>
             </View>
           </View>

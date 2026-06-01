@@ -1,15 +1,18 @@
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
   ActivityIndicator,
-  TouchableOpacityProps,
-  View,
   Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
+import { ALTASAI_COLORS, ALTASAI_RADIUS, ALTASAI_SPACING, ALTASAI_TYPOGRAPHY } from '../../theme';
 import { safeImpactAsync, ImpactFeedbackStyle } from '../../utils/haptics';
 
-interface ButtonProps extends TouchableOpacityProps {
+interface ButtonProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -17,7 +20,45 @@ interface ButtonProps extends TouchableOpacityProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   fullWidth?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
 }
+
+const bgColor: Record<NonNullable<ButtonProps['variant']>, string> = {
+  primary: ALTASAI_COLORS.accent.primary,
+  secondary: ALTASAI_COLORS.surface.raised,
+  outline: 'transparent',
+  ghost: 'transparent',
+  danger: ALTASAI_COLORS.error.primary,
+};
+
+const textColor: Record<NonNullable<ButtonProps['variant']>, string> = {
+  primary: ALTASAI_COLORS.background.primary,
+  secondary: ALTASAI_COLORS.text.primary,
+  outline: ALTASAI_COLORS.accent.primary,
+  ghost: ALTASAI_COLORS.accent.primary,
+  danger: '#FFFFFF',
+};
+
+const paddingH: Record<NonNullable<ButtonProps['size']>, number> = {
+  sm: ALTASAI_SPACING.md,
+  md: ALTASAI_SPACING.lg,
+  lg: ALTASAI_SPACING.xl,
+};
+
+const minH: Record<NonNullable<ButtonProps['size']>, number> = {
+  sm: 36,
+  md: 48,
+  lg: 56,
+};
+
+const fontSize: Record<NonNullable<ButtonProps['size']>, number> = {
+  sm: ALTASAI_TYPOGRAPHY.size.sm,
+  md: ALTASAI_TYPOGRAPHY.size.base,
+  lg: ALTASAI_TYPOGRAPHY.size.lg,
+};
 
 export const Button: React.FC<ButtonProps> = ({
   title,
@@ -27,80 +68,81 @@ export const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   fullWidth = false,
-  disabled,
+  disabled = false,
   onPress,
-  ...props
+  accessibilityLabel,
+  style,
 }) => {
-  const handlePress = (event: Parameters<NonNullable<TouchableOpacityProps['onPress']>>[0]) => {
-    if (!disabled && !isLoading) {
-      // Only trigger haptics on native platforms
-      if (Platform.OS !== 'web') {
-        safeImpactAsync(ImpactFeedbackStyle.Light);
-      }
-      onPress?.(event);
+  const isDisabled = disabled || isLoading;
+
+  const handlePress = () => {
+    if (!isDisabled) {
+      if (Platform.OS !== 'web') safeImpactAsync(ImpactFeedbackStyle.Light);
+      onPress?.();
     }
   };
 
-  const baseClasses = 'flex-row items-center justify-center rounded-xl';
-  const fullWidthClass = fullWidth ? 'w-full' : '';
-
-  const variantClasses = {
-    primary: 'bg-primary',
-    secondary: 'bg-surface-elevated',
-    outline: 'bg-transparent border-2 border-primary',
-    ghost: 'bg-transparent',
-    danger: 'bg-error',
-  };
-
-  const sizeClasses = {
-    sm: 'px-4 py-2',
-    md: 'px-6 py-3',
-    lg: 'px-8 py-4',
-  };
-
-  const textVariantClasses = {
-    primary: 'text-white',
-    secondary: 'text-white',
-    outline: 'text-primary',
-    ghost: 'text-primary',
-    danger: 'text-white',
-  };
-
-  const textSizeClasses = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg',
-  };
-
-  const disabledClass = disabled || isLoading ? 'opacity-50' : '';
-
   return (
-    <TouchableOpacity
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidthClass} ${disabledClass}`}
+    <Pressable
       onPress={handlePress}
-      disabled={disabled || isLoading}
+      disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading }}
-      accessibilityLabel={props.accessibilityLabel ?? title}
-      activeOpacity={0.7}
-      {...props}
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
+      style={({ pressed }) => [
+        styles.base,
+        {
+          backgroundColor: bgColor[variant],
+          paddingHorizontal: paddingH[size],
+          minHeight: minH[size],
+          borderWidth: variant === 'outline' ? 1 : 0,
+          borderColor: variant === 'outline' ? ALTASAI_COLORS.accent.primary : undefined,
+          width: fullWidth ? '100%' : undefined,
+          opacity: isDisabled ? 0.52 : pressed ? 0.82 : 1,
+        },
+        style,
+      ]}
     >
       {isLoading ? (
-        <ActivityIndicator
-          color={variant === 'outline' || variant === 'ghost' ? '#6366F1' : '#FFFFFF'}
-          size="small"
-        />
+        <ActivityIndicator color={textColor[variant]} size="small" />
       ) : (
-        <View className="flex-row items-center gap-2">
-          {leftIcon}
+        <View style={styles.row}>
+          {leftIcon ? <View style={styles.iconLeft}>{leftIcon}</View> : null}
           <Text
-            className={`font-semibold ${textVariantClasses[variant]} ${textSizeClasses[size]}`}
+            style={[
+              styles.text,
+              { color: textColor[variant], fontSize: fontSize[size] },
+            ]}
           >
             {title}
           </Text>
-          {rightIcon}
+          {rightIcon ? <View style={styles.iconRight}>{rightIcon}</View> : null}
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
+
+const styles = StyleSheet.create({
+  base: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: ALTASAI_RADIUS.xl,
+    flexDirection: 'row',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  text: {
+    fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
+    letterSpacing: ALTASAI_TYPOGRAPHY.tracking.normal,
+    textAlign: 'center',
+  },
+  iconLeft: {
+    marginRight: ALTASAI_SPACING.sm,
+  },
+  iconRight: {
+    marginLeft: ALTASAI_SPACING.sm,
+  },
+});

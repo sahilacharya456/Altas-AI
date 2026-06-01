@@ -30,5 +30,53 @@
     "title": "Protect recovery before adding pressure",
     "action": "Cut the task list, finish one essential task, and schedule sleep or recovery.",
     "expectedBenefit": "Prevents false productivity while preserving consistency."
+  },
+  {
+    "id": "address_missed_deadlines",
+    "pattern": "missed_deadlines",
+    "priority": "critical",
+    "title": "Clear overdue tasks now",
+    "action": "Pick the oldest overdue task. Rescope it to a 30-minute block or cancel it. Do not add new tasks until one overdue item is resolved.",
+    "expectedBenefit": "Stops deadline debt from compounding and restores execution clarity."
+  },
+  {
+    "id": "rebuild_focus_habit",
+    "pattern": "low_focus_consistency",
+    "priority": "medium",
+    "title": "Rebuild focus consistency",
+    "action": "Schedule a fixed 20-minute daily focus block at the same time for 5 consecutive days.",
+    "expectedBenefit": "Consistent timing reduces startup friction and builds a measurable execution habit."
+  },
+  {
+    "id": "unblock_goal",
+    "pattern": "goal_stagnation",
+    "priority": "medium",
+    "title": "Move a stalled goal forward",
+    "action": "Pick one goal with no recent progress. Create a single 30-minute task toward it today.",
+    "expectedBenefit": "Re-activates momentum on long-horizon goals before they are quietly abandoned."
+  },
+  {
+    "id": "protect_momentum",
+    "pattern": "high_productivity_streak",
+    "priority": "low",
+    "title": "Protect this momentum",
+    "action": "Keep today's task count at 3 or fewer. Avoid adding new work mid-session.",
+    "expectedBenefit": "Preserves the conditions that created the streak."
+  },
+  {
+    "id": "address_late_hours",
+    "pattern": "late_night_activity",
+    "priority": "medium",
+    "title": "Move critical work earlier",
+    "action": "Identify which tasks are being done late. Schedule them before 9pm tomorrow.",
+    "expectedBenefit": "Sleep-quality improvements compound over days; late-night execution carries higher error rates."
+  },
+  {
+    "id": "maintain_stable_pace",
+    "pattern": "stable_execution",
+    "priority": "low",
+    "title": "Maintain the stable pace",
+    "action": "Continue the current task rhythm. Introduce one new goal or habit only when the existing cadence is consistent for 7+ days.",
+    "expectedBenefit": "Prevents growth from destabilizing a working system."
   }
 ]

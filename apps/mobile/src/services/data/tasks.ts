@@ -144,7 +144,8 @@ export const getTodaysTasks = async (userId: string): Promise<Task[]> => {
  */
 export const subscribeToTodaysTasks = (
     userId: string,
-    callback: (tasks: Task[]) => void
+    callback: (tasks: Task[]) => void,
+    onError?: (error: Error) => void
 ): (() => void) => {
     const today = new Date();
     const startOfDay = new Date(today);
@@ -157,7 +158,7 @@ export const subscribeToTodaysTasks = (
         where('scheduledDate', '>=', Timestamp.fromDate(startOfDay)),
         where('scheduledDate', '<=', Timestamp.fromDate(endOfDay)),
         orderBy('scheduledDate', 'asc'),
-    ]);
+    ], onError);
 };
 
 /**

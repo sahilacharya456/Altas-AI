@@ -69,39 +69,36 @@ export default function ReflectionScreen() {
         return (
           <TextInputStep
             title="Today's Wins"
-            subtitle="What went well today?"
-            placeholder="I completed my workout, finished the project proposal..."
+            subtitle="What did you actually complete?"
+            placeholder="Finished the report section, had a clean focus session..."
             value={wins}
             onChange={setWins}
             onNext={handleNext}
             onBack={handleBack}
-            emoji="🏆"
           />
         );
       case 'challenges':
         return (
           <TextInputStep
-            title="Challenges"
-            subtitle="What held you back?"
-            placeholder="Got distracted by social media, felt tired after lunch..."
+            title="What Blocked You"
+            subtitle="Be honest — what slowed execution?"
+            placeholder="Got distracted, underestimated the task, skipped the focus block..."
             value={challenges}
             onChange={setChallenges}
             onNext={handleNext}
             onBack={handleBack}
-            emoji="🎯"
           />
         );
       case 'gratitude':
         return (
           <TextInputStep
-            title="Gratitude"
-            subtitle="What are you grateful for?"
-            placeholder="My health, supportive team, good weather..."
+            title="What Helped You"
+            subtitle="What supported your execution today?"
+            placeholder="Quiet environment, clear task scope, good energy..."
             value={gratitude}
             onChange={setGratitude}
             onNext={handleNext}
             onBack={handleBack}
-            emoji="🙏"
           />
         );
       case 'summary':

@@ -2,8 +2,8 @@ import React, { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { ErrorBoundary } from '../../components/ErrorBoundary';
-import { ToastContainer } from '../../components/ui/ToastContainer';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ToastContainer } from '../components/ui/ToastContainer';
 
 const queryClient = new QueryClient({
   defaultOptions: {

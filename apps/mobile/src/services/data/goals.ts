@@ -137,13 +137,14 @@ export const getAllGoals = async (_userId: string): Promise<Goal[]> => {
  */
 export const subscribeToActiveGoals = (
     userId: string,
-    callback: (goals: Goal[]) => void
+    callback: (goals: Goal[]) => void,
+    onError?: (error: Error) => void
 ): (() => void) => {
     return subscribeToCollection<Goal>(COLLECTION, (goals) => {
         callback(goals.sort((a, b) => getMillis(a.targetDate) - getMillis(b.targetDate)));
     }, [
         where('status', '==', 'active'),
-    ]);
+    ], onError);
 };
 
 /**

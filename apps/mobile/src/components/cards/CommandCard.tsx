@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
     color: ALTASAI_COLORS.accent.bright,
     fontSize: ALTASAI_TYPOGRAPHY.size.xs,
     fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
+    letterSpacing: ALTASAI_TYPOGRAPHY.tracking.wider,
     textTransform: 'uppercase',
   },
   title: {

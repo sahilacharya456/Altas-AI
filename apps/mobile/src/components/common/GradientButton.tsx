@@ -65,7 +65,13 @@ export const GradientButton = ({
   const { animatedStyle, pressIn, pressOut } = usePressScale();
   const currentSize = sizeStyles[size];
   const isDisabled = disabled || loading;
-  const textColor = variant === 'primary' ? ALTASAI_COLORS.text.primary : ALTASAI_COLORS.text.primary;
+  // Primary: emerald bg needs dark text for contrast.
+  // Danger: red bg needs white. Secondary/ghost: dark bg needs light text.
+  const textColor = variant === 'primary'
+    ? ALTASAI_COLORS.background.primary
+    : variant === 'danger'
+    ? '#FFFFFF'
+    : ALTASAI_COLORS.text.primary;
 
   return (
     <Animated.View style={[fullWidth && styles.fullWidth, animatedStyle, style]}>

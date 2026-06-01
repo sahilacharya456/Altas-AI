@@ -49,10 +49,8 @@ interface AuthState {
 // Store for unsubscribe functions
 let authUnsubscribe: (() => void) | null = null;
 let profileUnsubscribe: (() => void) | null = null;
-let profileLoadTimeout: ReturnType<typeof setTimeout> | null = null;
 let profileLoadToken = 0;
 
-const PROFILE_FALLBACK_DELAY_MS = 2500;
 const PROFILE_READ_TIMEOUT_MS = 4500;
 
 const getProfileWithTimeout = async (): Promise<UserProfile | null> => {
@@ -108,15 +106,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           profileUnsubscribe = null;
         }
 
-        if (profileLoadTimeout) {
-          clearTimeout(profileLoadTimeout);
-          profileLoadTimeout = null;
-        }
-
-        profileLoadTimeout = setTimeout(async () => {
-          try {
-            profileLoadTimeout = null;
-            const profile = await getProfileWithTimeout();
+        void getProfileWithTimeout()
+          .then((profile) => {
             if (token !== profileLoadToken) return;
 
             set({
@@ -124,26 +115,22 @@ export const useAuthStore = create<AuthState>((set) => ({
               isLoading: false,
               isInitialized: true,
             });
-          } catch (error) {
+          })
+          .catch((error) => {
             if (token !== profileLoadToken) return;
 
-            console.error('[AuthStore] Profile fallback load error:', error);
+            console.error('[AuthStore] Profile load error:', error);
             set({
               profile: null,
               isLoading: false,
               isInitialized: true,
               error: null,
             });
-          }
-        }, PROFILE_FALLBACK_DELAY_MS);
+          });
 
         // Subscribe to profile for real-time updates
         profileUnsubscribe = subscribeToProfile(
           (profile) => {
-            if (profileLoadTimeout) {
-              clearTimeout(profileLoadTimeout);
-              profileLoadTimeout = null;
-            }
             if (token !== profileLoadToken) return;
 
             set({
@@ -153,10 +140,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             });
           },
           (error) => {
-            if (profileLoadTimeout) {
-              clearTimeout(profileLoadTimeout);
-              profileLoadTimeout = null;
-            }
             if (token !== profileLoadToken) return;
 
             console.error('[AuthStore] Profile load error:', error);
@@ -169,10 +152,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         );
       } else {
         profileLoadToken++;
-        if (profileLoadTimeout) {
-          clearTimeout(profileLoadTimeout);
-          profileLoadTimeout = null;
-        }
 
         // User signed out - cleanup subscriptions
         if (profileUnsubscribe) {
@@ -355,10 +334,6 @@ export const selectCurrentScores = (state: AuthState) =>
 // Cleanup function for app unmount
 export const cleanupAuth = () => {
   profileLoadToken++;
-  if (profileLoadTimeout) {
-    clearTimeout(profileLoadTimeout);
-    profileLoadTimeout = null;
-  }
   if (authUnsubscribe) {
     authUnsubscribe();
     authUnsubscribe = null;

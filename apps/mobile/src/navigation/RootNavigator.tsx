@@ -3,10 +3,10 @@ import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { LoadingState } from '../../components/feedback';
-import { NotificationService } from '../../services/notifications';
-import { cleanupAuth, useAuthStore } from '../../stores/authStore';
-import { ALTASAI_COLORS } from '../../theme';
+import { LoadingState } from '../components/feedback';
+import { NotificationService } from '../services/notifications';
+import { cleanupAuth, useAuthStore } from '../stores/authStore';
+import { ALTASAI_COLORS } from '../theme';
 
 export function RootNavigator() {
   const { initialize, isInitialized } = useAuthStore();

@@ -207,7 +207,7 @@ interface TextInputStepProps {
   onChange: (value: string) => void;
   onNext: () => void;
   onBack: () => void;
-  emoji: string;
+  emoji?: string;
 }
 
 export function TextInputStep({
@@ -223,7 +223,7 @@ export function TextInputStep({
   return (
     <View style={styles.stepContainer}>
       <Animated.View entering={SlideInRight.duration(400)} style={styles.questionContainer}>
-        <Text style={styles.questionEmoji}>{emoji}</Text>
+        {emoji ? <Text style={styles.questionEmoji}>{emoji}</Text> : null}
         <Text style={styles.questionTitle}>{title}</Text>
         <Text style={styles.questionSubtitle}>{subtitle}</Text>
 

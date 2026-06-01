@@ -54,9 +54,16 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
     initialize: (userId: string) => {
         set({ isLoading: true, userId });
 
-        const unsubscribe = subscribeToActiveGoals(userId, (goals) => {
-            set({ goals, isLoading: false });
-        });
+        const unsubscribe = subscribeToActiveGoals(
+            userId,
+            (goals) => {
+                set({ goals, isLoading: false, error: null });
+            },
+            (error) => {
+                const message = error instanceof Error ? error.message : 'Failed to load goals';
+                set({ error: message, isLoading: false });
+            }
+        );
 
         return unsubscribe;
     },

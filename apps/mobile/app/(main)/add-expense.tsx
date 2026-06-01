@@ -53,7 +53,7 @@ export default function AddExpenseScreen() {
             safeNotificationAsync(NotificationFeedbackType.Success);
             router.back();
         } catch (error) {
-            console.error('Error adding expense:', error);
+            if (__DEV__) console.error('Error adding expense:', error);
             safeNotificationAsync(NotificationFeedbackType.Error);
             setIsSubmitting(false);
         }

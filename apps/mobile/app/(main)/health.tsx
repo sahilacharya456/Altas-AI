@@ -72,7 +72,7 @@ export default function HealthScreen() {
             setStreak(workoutStreakDays);
             setAvgSleep(avgSleepHours);
         } catch (error) {
-            console.error('Error loading health data:', error);
+            if (__DEV__) console.error('Error loading health data:', error);
         }
     };
 
@@ -99,7 +99,7 @@ export default function HealthScreen() {
 
             safeNotificationAsync(NotificationFeedbackType.Success);
         } catch (error) {
-            console.error('Error saving health data:', error);
+            if (__DEV__) console.error('Error saving health data:', error);
             safeNotificationAsync(NotificationFeedbackType.Error);
         } finally {
             setIsLoading(false);

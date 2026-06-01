@@ -50,7 +50,7 @@ export default function LedgerScreen() {
             const data = await getAllKhataEntries(user.uid);
             setEntries(data);
         } catch (error) {
-            console.error('Error loading khata entries:', error);
+            if (__DEV__) console.error('Error loading khata entries:', error);
         } finally {
             setIsLoading(false);
         }
@@ -64,7 +64,7 @@ export default function LedgerScreen() {
             await loadEntries();
             safeNotificationAsync(NotificationFeedbackType.Success);
         } catch (error) {
-            console.error('Error settling entry:', error);
+            if (__DEV__) console.error('Error settling entry:', error);
             safeNotificationAsync(NotificationFeedbackType.Error);
         }
     };
@@ -90,7 +90,7 @@ export default function LedgerScreen() {
             setNewEntry({ personName: '', amount: '', type: 'borrowed', note: '' });
             safeNotificationAsync(NotificationFeedbackType.Success);
         } catch (error) {
-            console.error('Error adding entry:', error);
+            if (__DEV__) console.error('Error adding entry:', error);
             safeNotificationAsync(NotificationFeedbackType.Error);
         }
     };

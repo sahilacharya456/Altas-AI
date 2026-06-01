@@ -79,7 +79,7 @@ export default function ExpenseHistoryScreen() {
             const data = await getCurrentMonthExpenses(user.uid);
             setExpenses(data);
         } catch (error) {
-            console.error('Error loading expenses:', error);
+            if (__DEV__) console.error('Error loading expenses:', error);
         } finally {
             setIsLoading(false);
         }
@@ -98,7 +98,7 @@ export default function ExpenseHistoryScreen() {
             setExpenses(prev => prev.filter(e => e.id !== expense.id));
             safeNotificationAsync(NotificationFeedbackType.Success);
         } catch (error) {
-            console.error('Error deleting expense:', error);
+            if (__DEV__) console.error('Error deleting expense:', error);
             safeNotificationAsync(NotificationFeedbackType.Error);
         } finally {
             setDeletingId(null);

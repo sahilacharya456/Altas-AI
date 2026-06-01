@@ -1,8 +1,8 @@
 {
   "test-user": {
     "break_task": {
-      "count": 6,
-      "totalReward": 6.0,
+      "count": 7,
+      "totalReward": 7.0,
       "averageReward": 1.0
     },
     "reduce_workload": {
@@ -11,8 +11,8 @@
       "averageReward": 1.0
     },
     "start_focus": {
-      "count": 3,
-      "totalReward": 3.0,
+      "count": 4,
+      "totalReward": 4.0,
       "averageReward": 1.0
     },
     "write_reflection": {

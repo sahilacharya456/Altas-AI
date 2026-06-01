@@ -72,7 +72,7 @@ export default function BudgetInsightsScreen() {
             setBudget(budgetData);
             setExpenses(expensesData);
         } catch (error) {
-            console.error('Error loading data:', error);
+            if (__DEV__) console.error('Error loading data:', error);
         } finally {
             setIsLoading(false);
         }
@@ -89,7 +89,7 @@ export default function BudgetInsightsScreen() {
             setInsights(data);
             safeNotificationAsync(NotificationFeedbackType.Success);
         } catch (error) {
-            console.error('Error analyzing budget:', error);
+            if (__DEV__) console.error('Error analyzing budget:', error);
             safeNotificationAsync(NotificationFeedbackType.Error);
         } finally {
             setIsLoadingAI(false);

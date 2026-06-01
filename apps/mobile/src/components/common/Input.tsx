@@ -6,8 +6,9 @@ import {
   Text,
   TouchableOpacity,
   TextInputProps,
+  ViewStyle,
 } from 'react-native';
-import { ALTASAI_COLORS, ALTASAI_SPACING, ALTASAI_TYPOGRAPHY } from '../../theme';
+import { ALTASAI_COLORS, ALTASAI_SPACING, ALTASAI_TYPOGRAPHY, ALTASAI_RADIUS } from '../../theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -32,27 +33,22 @@ export const Input: React.FC<InputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  const borderColor = error
-    ? 'border-error'
+  const borderStyle: ViewStyle = error
+    ? { borderColor: ALTASAI_COLORS.error.primary }
     : isFocused
-    ? 'border-primary'
-    : 'border-border';
+    ? { borderColor: ALTASAI_COLORS.accent.primary }
+    : { borderColor: ALTASAI_COLORS.border.primary };
 
   return (
-    <View className="w-full">
+    <View style={styles.container}>
       {label && (
-        <Text className="text-text-secondary text-sm mb-2 font-medium">
-          {label}
-        </Text>
+        <Text style={styles.label}>{label}</Text>
       )}
 
-      <View
-        className={`flex-row items-center bg-surface rounded-xl border ${borderColor} px-4`}
-      >
-        {leftIcon && <View className="mr-3">{leftIcon}</View>}
+      <View style={[styles.inputRow, borderStyle]}>
+        {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
 
         <TextInput
-          className="flex-1 text-text py-4 text-base"
           style={[styles.input, style]}
           placeholderTextColor={placeholderTextColor}
           selectionColor={ALTASAI_COLORS.accent.bright}
@@ -66,33 +62,70 @@ export const Input: React.FC<InputProps> = ({
         {isPassword && (
           <TouchableOpacity
             onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-            className="ml-3"
+            style={styles.rightIcon}
           >
-            <Text className="text-text-secondary text-sm">
+            <Text style={styles.toggleText}>
               {isPasswordVisible ? 'Hide' : 'Show'}
             </Text>
           </TouchableOpacity>
         )}
 
-        {rightIcon && !isPassword && <View className="ml-3">{rightIcon}</View>}
+        {rightIcon && !isPassword && <View style={styles.rightIcon}>{rightIcon}</View>}
       </View>
 
       {error && (
-        <Text className="text-error text-sm mt-1">{error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
       )}
 
       {hint && !error && (
-        <Text className="text-text-tertiary text-sm mt-1">{hint}</Text>
+        <Text style={styles.hintText}>{hint}</Text>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+  },
+  label: {
+    color: ALTASAI_COLORS.text.secondary,
+    fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+    marginBottom: ALTASAI_SPACING[2],
+    fontWeight: ALTASAI_TYPOGRAPHY.weight.medium,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: ALTASAI_COLORS.surface.base,
+    borderRadius: ALTASAI_RADIUS.xl,
+    borderWidth: 1,
+    paddingHorizontal: ALTASAI_SPACING[4],
+  },
+  leftIcon: {
+    marginRight: ALTASAI_SPACING[3],
+  },
+  rightIcon: {
+    marginLeft: ALTASAI_SPACING[3],
+  },
   input: {
     flex: 1,
     paddingVertical: ALTASAI_SPACING[4],
     fontSize: ALTASAI_TYPOGRAPHY.size.base,
     color: ALTASAI_COLORS.text.primary,
+  },
+  toggleText: {
+    color: ALTASAI_COLORS.text.secondary,
+    fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+  },
+  errorText: {
+    color: ALTASAI_COLORS.error.primary,
+    fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+    marginTop: ALTASAI_SPACING[1],
+  },
+  hintText: {
+    color: ALTASAI_COLORS.text.tertiary,
+    fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+    marginTop: ALTASAI_SPACING[1],
   },
 });

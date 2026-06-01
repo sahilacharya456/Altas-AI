@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   TextInput,
@@ -32,7 +33,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, requestPasswordReset, isLoading, error, clearError } = useAuthStore();
   const showToast = useToastStore((state) => state.showToast);
   const [showError, setShowError] = useState(false);
 
@@ -42,6 +43,7 @@ export default function LoginScreen() {
   const {
     control,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -75,6 +77,32 @@ export default function LoginScreen() {
   const handleBack = () => {
     safeImpactAsync(ImpactFeedbackStyle.Light);
     router.back();
+  };
+
+  const handleForgotPassword = async () => {
+    const email = getValues('email')?.trim();
+
+    if (!email) {
+      Alert.alert(
+        'Enter your email',
+        'Please enter your email address in the field above, then tap "Forgot password?" again.',
+      );
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      await requestPasswordReset(email);
+      safeNotificationAsync(NotificationFeedbackType.Success);
+      showToast('Password reset email sent. Check your inbox.', 'success');
+    } catch {
+      safeNotificationAsync(NotificationFeedbackType.Error);
+    }
   };
 
   return (
@@ -170,8 +198,14 @@ export default function LoginScreen() {
               </Pressable>
 
               {/* Forgot Password */}
-              <Pressable style={styles.forgotButton} disabled>
-                <Text style={styles.forgotText}>Forgot password?</Text>
+              <Pressable
+                style={styles.forgotButton}
+                onPress={handleForgotPassword}
+                disabled={isLoading}
+              >
+                <Text style={[styles.forgotText, !isLoading && styles.forgotTextActive]}>
+                  Forgot password?
+                </Text>
               </Pressable>
             </Animated.View>
 
@@ -296,6 +330,9 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: ALTASAI_TYPOGRAPHY.size.sm,
     color: ALTASAI_COLORS.text.muted,
+  },
+  forgotTextActive: {
+    color: ALTASAI_COLORS.accent.primary,
   },
   registerSection: {
     flexDirection: 'row',

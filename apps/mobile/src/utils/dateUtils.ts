@@ -29,7 +29,7 @@ export const convertToDate = (dateInput: Date | Timestamp | string | number | an
     }
 
     // Fallback: return current date
-    console.warn('Invalid date input, falling back to current date:', dateInput);
+    if (__DEV__) console.warn('Invalid date input, falling back to current date:', dateInput);
     return new Date();
 };
 

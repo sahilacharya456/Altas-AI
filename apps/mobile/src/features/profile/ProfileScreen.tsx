@@ -30,10 +30,15 @@ export default function ProfileScreen() {
     setNotificationsEnabled,
     hapticEnabled,
     setHapticEnabled,
+    appearanceMode,
+    aiMemoryEnabled,
     handleLogout,
-    showUnavailable,
-    goToDisciplineSetup,
+    showDisciplineOptions,
+    showAppearanceOptions,
     goToSecuritySettings,
+    exportData,
+    showAiMemoryControls,
+    showTermsAndPrivacy,
   } = useProfile();
 
   return (
@@ -173,13 +178,13 @@ export default function ProfileScreen() {
                 label="Discipline Level"
                 value={disciplineConfig.name}
                 valueColor={disciplineConfig.color}
-                onPress={goToDisciplineSetup}
+                onPress={showDisciplineOptions}
               />
               <SettingsButton
                 icon="UI"
                 label="Appearance"
-                value="Dark"
-                onPress={() => showUnavailable('Appearance')}
+                value={appearanceMode}
+                onPress={showAppearanceOptions}
               />
               <SettingsButton
                 icon="SC"
@@ -192,17 +197,18 @@ export default function ProfileScreen() {
               <SettingsButton
                 icon="EX"
                 label="Export data"
-                onPress={() => showUnavailable('Export Data')}
+                onPress={exportData}
               />
               <SettingsButton
                 icon="AI"
                 label="AI memory control"
-                onPress={() => showUnavailable('AI memory control')}
+                value={aiMemoryEnabled ? 'On' : 'Off'}
+                onPress={showAiMemoryControls}
               />
               <SettingsButton
                 icon="PR"
                 label="Terms and privacy"
-                onPress={() => showUnavailable('Terms & Privacy')}
+                onPress={showTermsAndPrivacy}
               />
             </View>
           </Animated.View>

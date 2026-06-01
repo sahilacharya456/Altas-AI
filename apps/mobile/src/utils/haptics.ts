@@ -9,7 +9,7 @@ export const safeImpactAsync = async (style: Haptics.ImpactFeedbackStyle) => {
         await Haptics.impactAsync(style);
     } catch (error) {
         // Ignore haptics errors generally
-        console.warn('Haptics error:', error);
+        // Haptics can fail on simulators/web — ignore silently in production
     }
 };
 
@@ -20,7 +20,7 @@ export const safeNotificationAsync = async (type: Haptics.NotificationFeedbackTy
     try {
         await Haptics.notificationAsync(type);
     } catch (error) {
-        console.warn('Haptics error:', error);
+        // Haptics can fail on simulators/web — ignore silently in production
     }
 };
 
@@ -31,7 +31,7 @@ export const safeSelectionAsync = async () => {
     try {
         await Haptics.selectionAsync();
     } catch (error) {
-        console.warn('Haptics error:', error);
+        // Haptics can fail on simulators/web — ignore silently in production
     }
 };
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DISCIPLINE_LEVELS } from '../../../constants/discipline';
 import { trackProductEvent } from '../../../services/analytics/productEvents';
@@ -15,18 +16,27 @@ export const mentorQuickResponses = [
   'Give me one hard action',
 ];
 
+const AI_MEMORY_KEY = 'altasai.aiMemoryEnabled';
+
 export const useMentor = () => {
   const { user, profile } = useAuthStore();
   const [message, setMessage] = useState('');
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [messages, setMessages] = useState<MentorMessage[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
+  const [aiMemoryEnabled, setAiMemoryEnabled] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const disciplineConfig = profile?.disciplineLevel
     ? DISCIPLINE_LEVELS[profile.disciplineLevel]
     : DISCIPLINE_LEVELS.strict;
   const isOfflineFallback = messages.some((msg) => msg.role === 'assistant' && msg.offline);
+
+  useEffect(() => {
+    void AsyncStorage.getItem(AI_MEMORY_KEY).then((value) => {
+      if (value === 'false') setAiMemoryEnabled(false);
+    });
+  }, []);
 
   useEffect(() => {
     if (messages.length > 0) return;
@@ -69,6 +79,21 @@ export const useMentor = () => {
     setIsAITyping(true);
 
     try {
+      if (!aiMemoryEnabled) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: [
+            'AI memory is off, so this prompt was not sent to the backend conversation store.',
+            '',
+            `Next move: turn "${userMsgText}" into one concrete action and schedule it before opening another module.`,
+          ].join('\n'),
+          timestamp: new Date(),
+          offline: true,
+        }]);
+        return;
+      }
+
       const response = await chatWithMentor(userMsgText, conversationId, 'general');
 
       if (response.conversationId) {
@@ -105,7 +130,7 @@ export const useMentor = () => {
     } finally {
       setIsAITyping(false);
     }
-  }, [message, isAITyping, user?.uid, conversationId]);
+  }, [message, isAITyping, user?.uid, conversationId, aiMemoryEnabled]);
 
   const handleQuickResponse = useCallback((response: string) => {
     safeSelectionAsync();
@@ -120,6 +145,7 @@ export const useMentor = () => {
     scrollViewRef,
     disciplineConfig,
     isOfflineFallback,
+    aiMemoryEnabled,
     handleSend,
     handleQuickResponse,
   };

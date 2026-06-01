@@ -120,7 +120,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           .catch((error) => {
             if (token !== profileLoadToken) return;
 
-            console.error('[AuthStore] Profile load error:', error);
+            if (__DEV__) console.error('[AuthStore] Profile load error:', error);
             set({
               profile: null,
               isLoading: false,
@@ -143,7 +143,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           (error) => {
             if (token !== profileLoadToken) return;
 
-            console.error('[AuthStore] Profile load error:', error);
+            if (__DEV__) console.error('[AuthStore] Profile load error:', error);
             set({
               isLoading: false,
               isInitialized: true,

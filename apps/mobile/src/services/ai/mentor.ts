@@ -53,7 +53,7 @@ export const chatWithMentor = async (
       };
     }
   } catch (error) {
-    console.warn('[AI] AltasAI backend mentor endpoint unavailable:', getErrorMessage(error));
+    if (__DEV__) console.warn('[AI] AltasAI backend mentor endpoint unavailable:', getErrorMessage(error));
   }
 
   return {
@@ -79,7 +79,7 @@ export const generateGoalBreakdown = async (
 
     return result.milestones?.length ? result.milestones : fallback;
   } catch (error) {
-    console.warn('[AI] Goal breakdown backend unavailable:', getErrorMessage(error));
+    if (__DEV__) console.warn('[AI] Goal breakdown backend unavailable:', getErrorMessage(error));
     return fallback;
   }
 };

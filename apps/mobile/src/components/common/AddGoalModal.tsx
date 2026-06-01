@@ -18,6 +18,8 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { DatePicker } from './DatePicker';
 import { Goal } from '../../types/firestore';
+import { useToastStore } from '../../stores/toastStore';
+import { getErrorMessage } from '../../utils/errors';
 
 interface AddGoalModalProps {
     visible: boolean;
@@ -28,7 +30,7 @@ interface AddGoalModalProps {
         priority: Goal['priority'];
         category: Goal['category'];
         targetDate: Date;
-    }) => Promise<void>;
+    }) => Promise<string | void>;
 }
 
 const PRIORITIES: { id: Goal['priority']; label: string; color: string }[] = [
@@ -57,23 +59,39 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
     const [category, setCategory] = useState<Goal['category']>('career');
     const [targetDate, setTargetDate] = useState(new Date());
     const [isLoading, setIsLoading] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const showToast = useToastStore((state) => state.showToast);
 
     const handleSubmit = async () => {
-        if (!title.trim()) return;
+        if (!title.trim()) {
+            const message = 'Goal title is required.';
+            setFeedback({ type: 'error', message });
+            showToast(message, 'error');
+            return;
+        }
 
         try {
             setIsLoading(true);
-            await onSubmit({
-                title,
-                description,
+            setFeedback(null);
+            const result = await onSubmit({
+                title: title.trim(),
+                description: description.trim(),
                 priority,
                 category,
                 targetDate,
             });
+            const message = String(result).startsWith('local_')
+                ? 'Goal saved locally. Cloud sync is blocked.'
+                : 'Goal created successfully.';
+            setFeedback({ type: 'success', message });
+            showToast(message, 'success');
             resetForm();
             onClose();
         } catch (error) {
             if (__DEV__) console.error('[AddGoalModal] Failed to create goal:', error);
+            const message = getErrorMessage(error, 'Goal could not be created. Please try again.');
+            setFeedback({ type: 'error', message });
+            showToast(message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -109,6 +127,12 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                     </View>
 
                     <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+                        {feedback ? (
+                            <View style={[styles.feedbackBox, feedback.type === 'error' ? styles.feedbackError : styles.feedbackSuccess]}>
+                                <Text style={styles.feedbackText}>{feedback.message}</Text>
+                            </View>
+                        ) : null}
+
                         <View style={styles.section}>
                             <Text style={styles.label}>Goal Title</Text>
                             <Input
@@ -197,6 +221,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                             title="Set Goal"
                             onPress={handleSubmit}
                             isLoading={isLoading}
+                            disabled={isLoading}
                             variant="primary"
                             fullWidth
                         />
@@ -246,6 +271,25 @@ const styles = StyleSheet.create({
     },
     section: {
         marginBottom: 24,
+    },
+    feedbackBox: {
+        borderRadius: 14,
+        borderWidth: 1,
+        padding: 14,
+        marginBottom: 18,
+    },
+    feedbackError: {
+        backgroundColor: 'rgba(255, 59, 92, 0.12)',
+        borderColor: '#FF3B5C',
+    },
+    feedbackSuccess: {
+        backgroundColor: 'rgba(52, 211, 153, 0.12)',
+        borderColor: '#34D399',
+    },
+    feedbackText: {
+        color: theme.colors.text.primary,
+        fontSize: 14,
+        fontWeight: '600',
     },
     label: {
         fontSize: 14,

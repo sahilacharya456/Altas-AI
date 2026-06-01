@@ -49,7 +49,9 @@ export const callBackend = async <TResponse>(
     if (error instanceof Error && error.name === 'AbortError') {
       throw new BackendApiError('AltasAI backend request timed out.', 408);
     }
-    throw new BackendApiError(error instanceof Error ? error.message : 'AltasAI backend request failed.');
+    throw new BackendApiError(
+      'AltasAI backend is not reachable. Start the backend with `npm run api`, then try again.'
+    );
   } finally {
     clearTimeout(timeout);
   }

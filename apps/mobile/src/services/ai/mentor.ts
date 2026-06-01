@@ -68,13 +68,33 @@ export const generateGoalBreakdown = async (
   goalTitle: string,
   goalDescription?: string
 ): Promise<string[]> => {
-  const result = await callBackend<GoalBreakdownResponse>('/api/goal-breakdown', {
-    goalId,
-    goalTitle,
-    goalDescription,
-  });
+  const fallback = buildLocalGoalBreakdown(goalTitle, goalDescription);
 
-  return result.milestones;
+  try {
+    const result = await callBackend<GoalBreakdownResponse>('/api/goal-breakdown', {
+      goalId,
+      goalTitle,
+      goalDescription,
+    });
+
+    return result.milestones?.length ? result.milestones : fallback;
+  } catch (error) {
+    console.warn('[AI] Goal breakdown backend unavailable:', getErrorMessage(error));
+    return fallback;
+  }
+};
+
+const buildLocalGoalBreakdown = (goalTitle: string, goalDescription?: string): string[] => {
+  const goal = goalTitle.trim() || 'this goal';
+  const context = goalDescription?.trim();
+
+  return [
+    `Define the exact outcome for "${goal}"`,
+    context ? `Extract the first concrete requirement from: ${context.slice(0, 90)}` : `List the first three actions needed for "${goal}"`,
+    'Schedule one focused 45-minute work block',
+    'Complete the smallest visible milestone',
+    'Review progress and choose the next action',
+  ];
 };
 
 export const generateReflectionFeedback = async (

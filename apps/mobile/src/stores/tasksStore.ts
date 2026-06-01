@@ -20,6 +20,7 @@ import {
 } from '../services/data';
 import { Task } from '../types/firestore';
 import { NotificationService } from '../services/notifications';
+import { getErrorMessage } from '../utils/errors';
 import { convertToDate } from '../utils/dateUtils';
 import { validateTask } from '../utils/validation';
 
@@ -160,6 +161,8 @@ export const useTasksStore = create<TasksState>((set, get) => ({
             // but for type safety with our interface update):
             const dataToSave = {
                 ...taskData,
+                description: taskData.description ?? '',
+                tags: taskData.tags ?? [],
                 scheduledDate: Timestamp.fromDate(taskData.scheduledDate instanceof Date ? taskData.scheduledDate : (taskData.scheduledDate as any).toDate()),
             };
 
@@ -178,7 +181,64 @@ export const useTasksStore = create<TasksState>((set, get) => ({
 
             return taskId;
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to create task';
+            const message = getErrorMessage(error, 'Failed to create task');
+            const isCloudBlocked =
+                error instanceof Error &&
+                (error.message.includes('Missing or insufficient permissions') ||
+                    error.message.toLowerCase().includes('network'));
+
+            if (isCloudBlocked) {
+                const scheduledDate = Timestamp.fromDate(
+                    taskData.scheduledDate instanceof Date
+                        ? taskData.scheduledDate
+                        : (taskData.scheduledDate as any).toDate()
+                );
+                const now = Timestamp.now();
+                const localTaskId = `local_${Date.now()}`;
+                const localTask: Task = {
+                    id: localTaskId,
+                    userId: taskData.userId,
+                    title: taskData.title,
+                    description: taskData.description ?? '',
+                    category: taskData.category,
+                    priority: taskData.priority,
+                    status: taskData.status ?? 'pending',
+                    estimatedMinutes: taskData.estimatedMinutes,
+                    scheduledDate,
+                    tags: taskData.tags ?? [],
+                    isCarried: false,
+                    carryCount: 0,
+                    createdAt: now,
+                    updatedAt: now,
+                    source: taskData.source ?? 'manual',
+                    context: taskData.context,
+                    goalId: taskData.goalId,
+                };
+
+                set((state) => {
+                    const tasks = [localTask, ...state.tasks];
+                    const completed = tasks.filter(t => t.status === 'completed').length;
+                    const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
+                    const carried = tasks.filter(t => t.status === 'carried').length;
+                    const total = tasks.length;
+
+                    return {
+                        tasks,
+                        isLoading: false,
+                        error: `${message} Mission saved locally for this session.`,
+                        summary: {
+                            total,
+                            completed,
+                            pending,
+                            carried,
+                            completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+                        },
+                    };
+                });
+
+                return localTaskId;
+            }
+
             set({ error: message, isLoading: false });
             throw error;
         }

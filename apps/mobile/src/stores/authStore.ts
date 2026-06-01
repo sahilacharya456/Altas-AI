@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { Timestamp } from 'firebase/firestore';
 import {
   signUp,
   signIn,
@@ -183,8 +184,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     try {
       set({ isLoading: true, error: null });
-      await signIn(email, password);
-      // Auth state listener will handle the rest
+      const user = await signIn(email, password);
+      const token = ++profileLoadToken;
+      const profile = await getProfileWithTimeout();
+
+      if (token === profileLoadToken) {
+        set({
+          user,
+          profile,
+          isAuthenticated: true,
+          isInitialized: true,
+          isLoading: false,
+          error: null,
+        });
+      }
     } catch (error) {
       let message = 'Login failed. Please try again.';
       if (error instanceof Error) {
@@ -208,8 +221,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (email: string, password: string, displayName: string) => {
     try {
       set({ isLoading: true, error: null });
-      await signUp(email, password, displayName);
-      // Auth state listener will handle the rest
+      const user = await signUp(email, password, displayName);
+      const token = ++profileLoadToken;
+      const profile = await getProfileWithTimeout();
+
+      if (token === profileLoadToken) {
+        set({
+          user,
+          profile,
+          isAuthenticated: true,
+          isInitialized: true,
+          isLoading: false,
+          error: null,
+        });
+      }
     } catch (error) {
       let message = 'Registration failed. Please try again.';
       if (error instanceof Error) {
@@ -284,8 +309,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       await completeOnboardingData(data);
-      // Profile subscription will update the state
-      set({ isLoading: false });
+      set((state) => ({
+        profile: state.profile
+          ? {
+              ...state.profile,
+              ...data,
+              onboardingCompleted: true,
+            }
+          : {
+              email: state.user?.email ?? '',
+              displayName: state.user?.displayName ?? 'Commander',
+              createdAt: Timestamp.now(),
+              ...data,
+              currentScores: {
+                discipline: 50,
+                productivity: 50,
+                consistency: 50,
+              },
+              onboardingCompleted: true,
+            },
+        isLoading: false,
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to complete onboarding';
       set({ error: message, isLoading: false });
@@ -298,8 +342,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       await updateProfileData(data);
-      // Profile subscription will update the state
-      set({ isLoading: false });
+      set((state) => ({
+        profile: state.profile ? { ...state.profile, ...data } : state.profile,
+        isLoading: false,
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update profile';
       set({ error: message, isLoading: false });

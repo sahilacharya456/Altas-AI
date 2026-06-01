@@ -109,13 +109,12 @@ export default function TasksScreen() {
   }) => {
     if (!user) return;
 
-    await addTask({
+    return addTask({
       ...taskData,
       status: 'pending',
       source: 'manual',
       userId: user.uid,
     });
-    safeNotificationAsync(NotificationFeedbackType.Success);
   };
 
   const handleCarry = useCallback(async (taskId: string) => {

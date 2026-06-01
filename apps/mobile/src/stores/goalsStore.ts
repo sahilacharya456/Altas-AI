@@ -18,6 +18,7 @@ import {
 } from '../services/data';
 import { generateGoalBreakdown } from '../services/ai';
 import { Goal } from '../types/firestore';
+import { getErrorMessage } from '../utils/errors';
 
 
 interface GoalsState {
@@ -100,13 +101,49 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
             set({ isLoading: true, error: null });
             const dataToSave = {
                 ...goalData,
+                description: goalData.description ?? '',
+                milestones: goalData.milestones ?? [],
+                aiBreakdown: goalData.aiBreakdown ?? [],
                 targetDate: Timestamp.fromDate(goalData.targetDate),
             };
             const goalId = await createGoal(dataToSave as any);
             set({ isLoading: false });
             return goalId;
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to create goal';
+            const message = getErrorMessage(error, 'Failed to create goal');
+            const isCloudBlocked =
+                error instanceof Error &&
+                (error.message.includes('Missing or insufficient permissions') ||
+                    error.message.toLowerCase().includes('network'));
+
+            if (isCloudBlocked) {
+                const now = Timestamp.now();
+                const localGoalId = `local_${Date.now()}`;
+                const localGoal: Goal = {
+                    id: localGoalId,
+                    userId: goalData.userId,
+                    title: goalData.title,
+                    description: goalData.description ?? '',
+                    category: goalData.category,
+                    priority: goalData.priority,
+                    targetDate: Timestamp.fromDate(goalData.targetDate),
+                    status: goalData.status ?? 'active',
+                    progress: 0,
+                    milestones: goalData.milestones ?? [],
+                    aiBreakdown: goalData.aiBreakdown ?? [],
+                    createdAt: now,
+                    updatedAt: now,
+                };
+
+                set((state) => ({
+                    goals: [localGoal, ...state.goals],
+                    isLoading: false,
+                    error: `${message} Goal saved locally for this session.`,
+                }));
+
+                return localGoalId;
+            }
+
             set({ error: message, isLoading: false });
             throw error;
         }
@@ -178,6 +215,19 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
         try {
             set({ isLoading: true, error: null });
             const milestones = await generateGoalBreakdown(goalId, title, description);
+            set((state) => ({
+                goals: state.goals.map((goal) =>
+                    goal.id === goalId
+                        ? {
+                            ...goal,
+                            aiBreakdown: milestones,
+                            milestones: goal.milestones?.length
+                                ? goal.milestones
+                                : milestones.map((milestone) => ({ title: milestone, completed: false })),
+                        }
+                        : goal
+                ),
+            }));
             set({ isLoading: false });
 
             // Refresh selected goal if it's the one being updated
@@ -187,9 +237,9 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
 
             return milestones;
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to generate breakdown';
+            const message = getErrorMessage(error, 'Failed to generate breakdown');
             set({ error: message, isLoading: false });
-            throw error;
+            return [];
         }
     },
 

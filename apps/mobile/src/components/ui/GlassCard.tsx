@@ -109,9 +109,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     lg: theme.spacing.lg,
   }[padding];
 
-  return (
-    <GestureDetector gesture={tap}>
-      <Animated.View style={[styles.container, animatedStyle, style]} {...props}>
+  const card = (
+    <Animated.View style={[styles.container, pressable && animatedStyle, style]} {...props}>
         {/* Glow is opt-in and subtle; legacy neon maps to a quiet accent state. */}
         {(variant === 'glow' || variant === 'neon' || glow) && (
           <Animated.View
@@ -164,6 +163,15 @@ export const GlassCard: React.FC<GlassCardProps> = ({
           </View>
         </View>
       </Animated.View>
+  );
+
+  if (!pressable) {
+    return card;
+  }
+
+  return (
+    <GestureDetector gesture={tap}>
+      {card}
     </GestureDetector>
   );
 };

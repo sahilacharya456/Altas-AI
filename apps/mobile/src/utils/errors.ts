@@ -22,7 +22,7 @@ export const formatUserFacingError = (message: string): string => {
   }
 
   if (normalized.includes('Missing or insufficient permissions')) {
-    return 'AltasAI could not access this data. Sign in again or check that this account owns the record.';
+    return 'Cloud save was blocked by Firebase permissions. Sign in again, or deploy the latest Firestore rules for this project.';
   }
 
   if (normalized.includes('Firebase') && normalized.includes('network')) {

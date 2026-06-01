@@ -20,6 +20,7 @@ import { altasaiCardEntrance } from '../../src/utils/animations';
 import { convertToDate } from '../../src/utils/dateUtils';
 import { safeNotificationAsync, NotificationFeedbackType } from '../../src/utils/haptics';
 import type { Goal } from '../../src/types/firestore';
+import { useToastStore } from '../../src/stores/toastStore';
 
 const priorityRisk = {
   critical: 'critical',
@@ -40,6 +41,7 @@ export default function GoalsScreen() {
     error,
   } = useGoalsStore();
   const { addTask } = useTasksStore();
+  const showToast = useToastStore((state) => state.showToast);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [busyGoalId, setBusyGoalId] = useState<string | null>(null);
 
@@ -68,20 +70,20 @@ export default function GoalsScreen() {
   }) => {
     if (!user) return;
 
-    await addGoal({
+    return addGoal({
       ...goalData,
       status: 'active',
       userId: user.uid,
       milestones: [],
     });
-    await safeNotificationAsync(NotificationFeedbackType.Success);
   };
 
   const handleBreakdown = async (goal: Goal) => {
     if (!goal.id) return;
     setBusyGoalId(goal.id);
     try {
-      await generateBreakdown(goal.id, goal.title, goal.description);
+      const milestones = await generateBreakdown(goal.id, goal.title, goal.description);
+      showToast(milestones.length ? 'Goal breakdown ready.' : 'Goal breakdown could not be generated.', milestones.length ? 'success' : 'error');
       await safeNotificationAsync(NotificationFeedbackType.Success);
     } finally {
       setBusyGoalId(null);

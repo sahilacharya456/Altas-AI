@@ -6,8 +6,15 @@ import {
     Modal,
     ScrollView,
     Platform,
+    StyleSheet,
 } from 'react-native';
 import { safeNotificationAsync, safeSelectionAsync, NotificationFeedbackType } from '../../utils/haptics';
+import {
+    ALTASAI_COLORS,
+    ALTASAI_RADIUS,
+    ALTASAI_SPACING,
+    ALTASAI_TYPOGRAPHY,
+} from '../../theme';
 
 interface DatePickerProps {
     label?: string;
@@ -77,22 +84,22 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     };
 
     return (
-        <View className="w-full">
+        <View style={styles.container}>
             {label && (
-                <Text className="text-text-secondary text-sm mb-2 font-medium">
+                <Text style={styles.label}>
                     {label}
                 </Text>
             )}
 
             <TouchableOpacity
-                className="bg-surface border border-border rounded-xl px-4 py-4"
+                style={styles.trigger}
                 onPress={() => {
                     setSelectedDate(value);
                     setIsOpen(true);
                 }}
                 activeOpacity={0.7}
             >
-                <Text className="text-text text-lg">{formatDate(value)}</Text>
+                <Text style={styles.triggerText}>{formatDate(value)}</Text>
             </TouchableOpacity>
 
             <Modal
@@ -101,34 +108,33 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 animationType="slide"
                 onRequestClose={() => setIsOpen(false)}
             >
-                <View className="flex-1 justify-end bg-black/50">
-                    <View className="bg-background rounded-t-3xl">
+                <View style={styles.backdrop}>
+                    <View style={styles.sheet}>
                         {/* Header */}
-                        <View className="flex-row justify-between items-center p-4 border-b border-border">
+                        <View style={styles.header}>
                             <TouchableOpacity onPress={() => setIsOpen(false)}>
-                                <Text className="text-text-secondary text-base">Cancel</Text>
+                                <Text style={styles.headerAction}>Cancel</Text>
                             </TouchableOpacity>
-                            <Text className="text-text font-semibold text-lg">Select Date</Text>
+                            <Text style={styles.headerTitle}>Select Date</Text>
                             <TouchableOpacity onPress={handleConfirm}>
-                                <Text className="text-primary font-semibold text-base">Done</Text>
+                                <Text style={styles.doneAction}>Done</Text>
                             </TouchableOpacity>
                         </View>
 
                         {/* Date Picker Columns */}
-                        <View className="flex-row h-52 px-4 py-4">
+                        <View style={styles.pickerBody}>
                             {/* Month */}
-                            <View className="flex-[1.5]">
-                                <Text className="text-text-secondary text-center text-sm mb-2">Month</Text>
+                            <View style={styles.monthColumn}>
+                                <Text style={styles.columnLabel}>Month</Text>
                                 <ScrollView showsVerticalScrollIndicator={false}>
                                     {months.map((m, index) => (
                                         <TouchableOpacity
                                             key={m}
-                                            className={`py-3 px-2 ${selectedDate.getMonth() === index ? 'bg-primary/20 rounded-lg' : ''}`}
+                                            style={[styles.option, selectedDate.getMonth() === index && styles.optionSelected]}
                                             onPress={() => updateDate(selectedDate.getFullYear(), index, selectedDate.getDate())}
                                         >
                                             <Text
-                                                className={`text-center text-lg ${selectedDate.getMonth() === index ? 'text-primary font-semibold' : 'text-text'
-                                                    }`}
+                                                style={[styles.optionText, selectedDate.getMonth() === index && styles.optionTextSelected]}
                                             >
                                                 {m}
                                             </Text>
@@ -138,18 +144,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             </View>
 
                             {/* Day */}
-                            <View className="flex-1 mx-2">
-                                <Text className="text-text-secondary text-center text-sm mb-2">Day</Text>
+                            <View style={styles.column}>
+                                <Text style={styles.columnLabel}>Day</Text>
                                 <ScrollView showsVerticalScrollIndicator={false}>
                                     {days.map((d) => (
                                         <TouchableOpacity
                                             key={d}
-                                            className={`py-3 ${selectedDate.getDate() === d ? 'bg-primary/20 rounded-lg' : ''}`}
+                                            style={[styles.option, selectedDate.getDate() === d && styles.optionSelected]}
                                             onPress={() => updateDate(selectedDate.getFullYear(), selectedDate.getMonth(), d)}
                                         >
                                             <Text
-                                                className={`text-center text-lg ${selectedDate.getDate() === d ? 'text-primary font-semibold' : 'text-text'
-                                                    }`}
+                                                style={[styles.optionText, selectedDate.getDate() === d && styles.optionTextSelected]}
                                             >
                                                 {d}
                                             </Text>
@@ -159,18 +164,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             </View>
 
                             {/* Year */}
-                            <View className="flex-1">
-                                <Text className="text-text-secondary text-center text-sm mb-2">Year</Text>
+                            <View style={styles.column}>
+                                <Text style={styles.columnLabel}>Year</Text>
                                 <ScrollView showsVerticalScrollIndicator={false}>
                                     {years.map((y) => (
                                         <TouchableOpacity
                                             key={y}
-                                            className={`py-3 ${selectedDate.getFullYear() === y ? 'bg-primary/20 rounded-lg' : ''}`}
+                                            style={[styles.option, selectedDate.getFullYear() === y && styles.optionSelected]}
                                             onPress={() => updateDate(y, selectedDate.getMonth(), selectedDate.getDate())}
                                         >
                                             <Text
-                                                className={`text-center text-lg ${selectedDate.getFullYear() === y ? 'text-primary font-semibold' : 'text-text'
-                                                    }`}
+                                                style={[styles.optionText, selectedDate.getFullYear() === y && styles.optionTextSelected]}
                                             >
                                                 {y}
                                             </Text>
@@ -185,3 +189,107 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        width: '100%',
+    },
+    label: {
+        marginBottom: ALTASAI_SPACING.xs,
+        color: ALTASAI_COLORS.text.secondary,
+        fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.medium,
+    },
+    trigger: {
+        borderWidth: 1,
+        borderColor: ALTASAI_COLORS.border.primary,
+        borderRadius: ALTASAI_RADIUS.xl,
+        backgroundColor: ALTASAI_COLORS.surface.raised,
+        paddingHorizontal: ALTASAI_SPACING.md,
+        paddingVertical: ALTASAI_SPACING.md,
+    },
+    triggerText: {
+        color: ALTASAI_COLORS.text.primary,
+        fontSize: ALTASAI_TYPOGRAPHY.size.lg,
+    },
+    backdrop: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    },
+    sheet: {
+        overflow: 'hidden',
+        borderTopLeftRadius: ALTASAI_RADIUS['2xl'],
+        borderTopRightRadius: ALTASAI_RADIUS['2xl'],
+        borderWidth: 1,
+        borderColor: ALTASAI_COLORS.border.primary,
+        backgroundColor: ALTASAI_COLORS.background.secondary,
+    },
+    header: {
+        minHeight: 58,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottomWidth: 1,
+        borderBottomColor: ALTASAI_COLORS.border.secondary,
+        paddingHorizontal: ALTASAI_SPACING.md,
+    },
+    headerAction: {
+        color: ALTASAI_COLORS.text.secondary,
+        fontSize: ALTASAI_TYPOGRAPHY.size.base,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.medium,
+    },
+    doneAction: {
+        color: ALTASAI_COLORS.accent.bright,
+        fontSize: ALTASAI_TYPOGRAPHY.size.base,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
+    },
+    headerTitle: {
+        color: ALTASAI_COLORS.text.primary,
+        fontSize: ALTASAI_TYPOGRAPHY.size.lg,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
+    },
+    pickerBody: {
+        height: 220,
+        flexDirection: 'row',
+        gap: ALTASAI_SPACING.sm,
+        paddingHorizontal: ALTASAI_SPACING.md,
+        paddingVertical: ALTASAI_SPACING.md,
+        backgroundColor: ALTASAI_COLORS.background.primary,
+    },
+    monthColumn: {
+        flex: 1.5,
+    },
+    column: {
+        flex: 1,
+    },
+    columnLabel: {
+        marginBottom: ALTASAI_SPACING.xs,
+        color: ALTASAI_COLORS.text.secondary,
+        textAlign: 'center',
+        fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.medium,
+    },
+    option: {
+        minHeight: 44,
+        justifyContent: 'center',
+        borderRadius: ALTASAI_RADIUS.lg,
+        paddingHorizontal: ALTASAI_SPACING.xs,
+        paddingVertical: ALTASAI_SPACING.sm,
+    },
+    optionSelected: {
+        borderWidth: 1,
+        borderColor: ALTASAI_COLORS.border.accent,
+        backgroundColor: ALTASAI_COLORS.accent.glow,
+    },
+    optionText: {
+        color: '#FFFFFF',
+        textAlign: 'center',
+        fontSize: ALTASAI_TYPOGRAPHY.size.lg,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.medium,
+    },
+    optionTextSelected: {
+        color: ALTASAI_COLORS.accent.bright,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.bold,
+    },
+});

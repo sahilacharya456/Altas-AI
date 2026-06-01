@@ -18,6 +18,8 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { TimePicker } from './TimePicker';
 import { Task } from '../../types/firestore';
+import { useToastStore } from '../../stores/toastStore';
+import { getErrorMessage } from '../../utils/errors';
 
 interface AddTaskModalProps {
     visible: boolean;
@@ -28,7 +30,7 @@ interface AddTaskModalProps {
         category: Task['category'];
         estimatedMinutes: number;
         scheduledDate: Date;
-    }) => Promise<void>;
+    }) => Promise<string | void>;
 }
 
 const PRIORITIES: { id: Task['priority']; label: string; color: string }[] = [
@@ -57,23 +59,39 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
     const [estimatedMinutes, setEstimatedMinutes] = useState('30');
     const [scheduledDate, setScheduledDate] = useState(new Date());
     const [isLoading, setIsLoading] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const showToast = useToastStore((state) => state.showToast);
 
     const handleSubmit = async () => {
-        if (!title.trim()) return;
+        if (!title.trim()) {
+            const message = 'Mission title is required.';
+            setFeedback({ type: 'error', message });
+            showToast(message, 'error');
+            return;
+        }
 
         try {
             setIsLoading(true);
-            await onSubmit({
-                title,
+            setFeedback(null);
+            const result = await onSubmit({
+                title: title.trim(),
                 priority,
                 category,
                 estimatedMinutes: parseInt(estimatedMinutes) || 30,
                 scheduledDate,
             });
+            const message = String(result).startsWith('local_')
+                ? 'Mission saved locally. Cloud sync is blocked.'
+                : 'Mission created successfully.';
+            setFeedback({ type: 'success', message });
+            showToast(message, 'success');
             resetForm();
             onClose();
         } catch (error) {
             if (__DEV__) console.error('[AddTaskModal] Failed to create task:', error);
+            const message = getErrorMessage(error, 'Mission could not be created. Please try again.');
+            setFeedback({ type: 'error', message });
+            showToast(message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -109,6 +127,12 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
                     </View>
 
                     <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+                        {feedback ? (
+                            <View style={[styles.feedbackBox, feedback.type === 'error' ? styles.feedbackError : styles.feedbackSuccess]}>
+                                <Text style={styles.feedbackText}>{feedback.message}</Text>
+                            </View>
+                        ) : null}
+
                         <View style={styles.section}>
                             <Text style={styles.label}>Title</Text>
                             <Input
@@ -202,6 +226,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
                             title="Create Mission"
                             onPress={handleSubmit}
                             isLoading={isLoading}
+                            disabled={isLoading}
                             variant="primary"
                             fullWidth
                         />
@@ -251,6 +276,25 @@ const styles = StyleSheet.create({
     },
     section: {
         marginBottom: 24,
+    },
+    feedbackBox: {
+        borderRadius: 14,
+        borderWidth: 1,
+        padding: 14,
+        marginBottom: 18,
+    },
+    feedbackError: {
+        backgroundColor: 'rgba(255, 59, 92, 0.12)',
+        borderColor: '#FF3B5C',
+    },
+    feedbackSuccess: {
+        backgroundColor: 'rgba(52, 211, 153, 0.12)',
+        borderColor: '#34D399',
+    },
+    feedbackText: {
+        color: theme.colors.text.primary,
+        fontSize: 14,
+        fontWeight: '600',
     },
     label: {
         fontSize: 14,

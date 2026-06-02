@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { AppHeader, ScreenContainer } from '../../src/components/layout';
@@ -44,6 +44,14 @@ export default function GoalsScreen() {
   const showToast = useToastStore((state) => state.showToast);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [busyGoalId, setBusyGoalId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    if (!user?.uid) return;
+    setRefreshing(true);
+    initialize(user.uid);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, [user?.uid, initialize]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -111,7 +119,18 @@ export default function GoalsScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer
+      scrollProps={{
+        refreshControl: (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={ALTASAI_COLORS.accent.bright}
+            colors={[ALTASAI_COLORS.accent.bright]}
+          />
+        ),
+      }}
+    >
       <Animated.View entering={altasaiCardEntrance(0)}>
         <AppHeader
           eyebrow="Goals"

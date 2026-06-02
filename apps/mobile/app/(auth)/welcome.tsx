@@ -6,6 +6,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AltasAICoreVisual } from '../../src/components/ui';
+import { useNetworkStatus } from '../../src/hooks';
 import { ROUTES } from '../../src/constants/routes';
 import {
   ALTASAI_COLORS,
@@ -19,6 +20,9 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CORE_SIZE = Math.min(SCREEN_WIDTH * 0.86, SCREEN_HEIGHT * 0.48, 390);
 
 export default function WelcomeScreen() {
+  const network = useNetworkStatus();
+  const isOnline = network.isConnected && network.isInternetReachable;
+
   const handleLogin = () => {
     safeImpactAsync(ImpactFeedbackStyle.Light);
     router.push(ROUTES.AUTH.LOGIN);
@@ -45,8 +49,8 @@ export default function WelcomeScreen() {
         <Animated.View entering={FadeIn.duration(520)} style={styles.topBar}>
           <Text style={styles.wordmark}>ALTASAI</Text>
           <View style={styles.statusPill}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Core online</Text>
+            <View style={[styles.statusDot, !isOnline && styles.statusDotOffline]} />
+            <Text style={styles.statusText}>{isOnline ? 'Core online' : 'Offline'}</Text>
           </View>
         </Animated.View>
 
@@ -163,6 +167,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.82,
     shadowRadius: 8,
+  },
+  statusDotOffline: {
+    backgroundColor: '#F59E0B',
+    shadowColor: '#F59E0B',
   },
   statusText: {
     color: ALTASAI_COLORS.text.tertiary,

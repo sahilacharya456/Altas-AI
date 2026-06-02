@@ -11,7 +11,8 @@ import Animated, {
 
 import { ALTASAI_COLORS } from '../../src/theme/colors';
 import { useAuthStore } from '../../src/stores/authStore';
-import { LoadingState } from '../../src/components/feedback';
+import { LoadingState, OfflineBanner } from '../../src/components/feedback';
+import { useNetworkStatus } from '../../src/hooks';
 
 interface TabIconProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -49,6 +50,8 @@ function TabIcon({ icon, label, focused }: TabIconProps) {
 
 export default function MainLayout() {
   const { isInitialized, isAuthenticated, isLoading, profile } = useAuthStore();
+  const network = useNetworkStatus();
+  const isOffline = !network.isConnected || !network.isInternetReachable;
 
   if (!isInitialized || isLoading) {
     return <LoadingState title="Preparing AltasAI" />;
@@ -63,8 +66,10 @@ export default function MainLayout() {
   }
 
   return (
-    <Tabs
-      screenOptions={{
+    <View style={styles.layoutRoot}>
+      <OfflineBanner visible={isOffline} />
+      <Tabs
+        screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarBackground: () => (
@@ -142,10 +147,15 @@ export default function MainLayout() {
       <Tabs.Screen name="task-detail" options={{ href: null }} />
       <Tabs.Screen name="focus" options={{ href: null }} />
     </Tabs>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  layoutRoot: {
+    flex: 1,
+    backgroundColor: ALTASAI_COLORS.background.primary,
+  },
   tabBar: {
     position: 'absolute',
     backgroundColor: ALTASAI_COLORS.background.secondary,

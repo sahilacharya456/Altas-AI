@@ -5,7 +5,7 @@ import Animated from 'react-native-reanimated';
 import { GradientButton, SectionHeader } from '../../../components/common';
 import { ActionCard, CommandCard, InsightCard, InterventionCard, StatCard } from '../../../components/cards';
 import { ProgressRing } from '../../../components/charts';
-import { DisciplineBadge, EmptyState, ErrorState, RiskBadge } from '../../../components/feedback';
+import { DisciplineBadge, EmptyState, ErrorState, RiskBadge, SkeletonDashboard } from '../../../components/feedback';
 import { AppHeader, ScreenContainer } from '../../../components/layout';
 import { AltasAICoreVisual } from '../../../components/ui';
 import { ALTASAI_COLORS } from '../../../theme';
@@ -68,6 +68,10 @@ export default function HomeScreen() {
           }
         />
       </Animated.View>
+
+      {tasksLoading && !refreshing && topActions.length === 0 ? (
+        <SkeletonDashboard />
+      ) : null}
 
       {hasError ? (
         <ErrorState

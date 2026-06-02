@@ -163,7 +163,7 @@ export const runMentorOrchestration = async (
   };
 
   if (!options.enhanceWithGemini || !context.message) {
-    return { plan, ...internal, provider: 'internal', offline: true };
+    return { plan, ...internal, provider: 'internal', offline: false };
   }
 
   const model = await generateGeminiText({
@@ -178,7 +178,7 @@ export const runMentorOrchestration = async (
   });
 
   if (model.offline) {
-    return { plan, ...internal, provider: 'internal', offline: true };
+    return { plan, ...internal, provider: 'internal', offline: false };
   }
 
   const parsed = parseJsonWithSchema(model.text, enhancedMentorSchema, internal);

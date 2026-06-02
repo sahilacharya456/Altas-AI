@@ -9,6 +9,7 @@ import { retrieveSafeMemory } from '../services/memory';
 import { env } from '../config/env';
 import { enforceUserQuota } from '../services/quota';
 import { runAltasAIOrchestrator, runMentorOrchestration, runReportInsight } from '../altasai';
+import { logger } from '../utils/logger';
 import { recommendationsRouter } from './recommendations.routes';
 import {
   budgetPrompt,
@@ -100,47 +101,54 @@ aiRouter.post('/mentor', asyncHandler(async (req, res) => {
   }, { enhanceWithGemini: true });
   const response = result.response;
 
-  let conversationRef: DocumentReference;
-  if (body.conversationId && !body.conversationId.startsWith('offline-')) {
-    conversationRef = db.doc(`users/${userId}/conversations/${body.conversationId}`);
-  } else {
-    conversationRef = db.collection(`users/${userId}/conversations`).doc();
+  let conversationId = body.conversationId || `local_${Date.now()}`;
+  try {
+    let conversationRef: DocumentReference;
+    if (body.conversationId && !body.conversationId.startsWith('offline-')) {
+      conversationRef = db.doc(`users/${userId}/conversations/${body.conversationId}`);
+    } else {
+      conversationRef = db.collection(`users/${userId}/conversations`).doc();
+      await conversationRef.set({
+        contextType: body.contextType ?? 'general',
+        messages: [],
+        isActive: true,
+        createdAt: FieldValue.serverTimestamp(),
+        lastMessageAt: FieldValue.serverTimestamp(),
+      });
+    }
+
     await conversationRef.set({
-      contextType: body.contextType ?? 'general',
-      messages: [],
-      isActive: true,
-      createdAt: FieldValue.serverTimestamp(),
+      messages: FieldValue.arrayUnion(
+        { role: 'user', content: body.message, timestamp: new Date() },
+        { role: 'assistant', content: response, timestamp: new Date(), offline: result.offline, provider: result.provider }
+      ),
       lastMessageAt: FieldValue.serverTimestamp(),
+      lastIntent: result.plan.intent.label,
+      lastRecommendations: result.plan.recommendations.map((recommendation) => recommendation.id),
+    }, { merge: true });
+
+    conversationId = conversationRef.id;
+
+    await db.collection(`users/${userId}/aiFeedback`).add({
+      type: body.contextType ?? 'general',
+      prompt: body.message.slice(0, 500),
+      response,
+      provider: result.provider,
+      offline: result.offline,
+      internalPlan: {
+        intent: result.plan.intent,
+        patterns: result.plan.patterns,
+        recommendations: result.plan.recommendations,
+      },
+      createdAt: FieldValue.serverTimestamp(),
     });
+  } catch (storeError) {
+    logger.warn('mentor.store_failed', { userId, error: storeError instanceof Error ? storeError.message : String(storeError) });
   }
-
-  await conversationRef.set({
-    messages: FieldValue.arrayUnion(
-      { role: 'user', content: body.message, timestamp: new Date() },
-      { role: 'assistant', content: response, timestamp: new Date(), offline: result.offline, provider: result.provider }
-    ),
-    lastMessageAt: FieldValue.serverTimestamp(),
-    lastIntent: result.plan.intent.label,
-    lastRecommendations: result.plan.recommendations.map((recommendation) => recommendation.id),
-  }, { merge: true });
-
-  await db.collection(`users/${userId}/aiFeedback`).add({
-    type: body.contextType ?? 'general',
-    prompt: body.message.slice(0, 500),
-    response,
-    provider: result.provider,
-    offline: result.offline,
-    internalPlan: {
-      intent: result.plan.intent,
-      patterns: result.plan.patterns,
-      recommendations: result.plan.recommendations,
-    },
-    createdAt: FieldValue.serverTimestamp(),
-  });
 
   res.json({
     response,
-    conversationId: conversationRef.id,
+    conversationId,
     offline: result.offline,
     provider: result.provider,
     intent: result.plan.intent,

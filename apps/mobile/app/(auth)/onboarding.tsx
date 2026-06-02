@@ -14,14 +14,20 @@ import { ALTASAI_TYPOGRAPHY } from '../../src/theme/typography';
 import { ALTASAI_SPACING } from '../../src/theme/spacing';
 import { ALTASAI_RADIUS } from '../../src/theme/radius';
 import { ROUTES } from '../../src/constants/routes';
-import { DISCIPLINE_LEVELS, type DisciplineLevel } from '../../src/constants/discipline';
+import { DISCIPLINE_LEVELS, FOCUS_AREAS, type DisciplineLevel, type FocusArea } from '../../src/constants/discipline';
 
 export default function OnboardingScreen() {
     const [step, setStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState<DisciplineLevel>('strict');
+    const [selectedAreas, setSelectedAreas] = useState<FocusArea[]>([]);
     const { completeOnboarding } = useAuthStore();
     const showToast = useToastStore((state) => state.showToast);
+
+    const totalSteps = 4;
+    const isLastStep = step === totalSteps - 1;
+    const isFocusAreasStep = step === 2;
+    const isDisciplineStep = step === 3;
 
     const steps = [
         {
@@ -37,6 +43,12 @@ export default function OnboardingScreen() {
             emoji: '📊',
         },
         {
+            title: 'Your Focus Areas',
+            subtitle: 'What are you building discipline around?',
+            description: 'Select the areas you want AltasAI to help you with. Pick at least one.',
+            emoji: '🧭',
+        },
+        {
             title: 'Choose Your Mentor Mode',
             subtitle: 'How strict should AltasAI be?',
             description: 'Select your accountability level. You can change this anytime in Profile settings.',
@@ -45,14 +57,20 @@ export default function OnboardingScreen() {
     ];
 
     const currentStep = steps[step];
-    const isLastStep = step === steps.length - 1;
+
+    const toggleArea = (area: FocusArea) => {
+        safeSelectionAsync();
+        setSelectedAreas((prev) =>
+            prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
+        );
+    };
 
     const finishOnboarding = async (level: DisciplineLevel) => {
         try {
             setIsSubmitting(true);
             await completeOnboarding({
                 disciplineLevel: level,
-                focusAreas: ['career', 'personal'],
+                focusAreas: selectedAreas.length > 0 ? selectedAreas : ['career', 'personal'],
                 lifeRhythm: {
                     wakeTime: '06:00',
                     sleepTime: '22:00',
@@ -71,6 +89,11 @@ export default function OnboardingScreen() {
 
     const handleNext = async () => {
         safeImpactAsync(ImpactFeedbackStyle.Medium);
+
+        if (isFocusAreasStep && selectedAreas.length === 0) {
+            showToast('Select at least one focus area.', 'error');
+            return;
+        }
 
         if (isLastStep) {
             await finishOnboarding(selectedLevel);
@@ -114,8 +137,48 @@ export default function OnboardingScreen() {
                         {/* Description */}
                         <Text style={styles.description}>{currentStep.description}</Text>
 
-                        {/* Discipline Level Selection (Step 3 only) */}
-                        {isLastStep && (
+                        {/* Focus Areas Selection (Step 3) */}
+                        {isFocusAreasStep && (
+                            <View style={styles.selectionContainer}>
+                                {(Object.keys(FOCUS_AREAS) as FocusArea[]).map((area) => {
+                                    const config = FOCUS_AREAS[area];
+                                    const isSelected = selectedAreas.includes(area);
+
+                                    return (
+                                        <Pressable
+                                            key={area}
+                                            style={[
+                                                styles.levelCard,
+                                                isSelected && { borderColor: ALTASAI_COLORS.accent.primary },
+                                            ]}
+                                            onPress={() => toggleArea(area)}
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSelected && (
+                                                <View style={[styles.levelAccent, { backgroundColor: ALTASAI_COLORS.accent.primary }]} />
+                                            )}
+
+                                            <View style={styles.levelContent}>
+                                                <Text style={[styles.levelName, isSelected && { color: ALTASAI_COLORS.accent.primary }]}>
+                                                    {config.name}
+                                                </Text>
+                                                <Text style={styles.levelDescription}>{config.description}</Text>
+                                            </View>
+
+                                            <View style={[
+                                                styles.checkbox,
+                                                isSelected && styles.checkboxSelected,
+                                            ]}>
+                                                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                                            </View>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                        )}
+
+                        {/* Discipline Level Selection (Step 4) */}
+                        {isDisciplineStep && (
                             <View style={styles.selectionContainer}>
                                 {(Object.keys(DISCIPLINE_LEVELS) as DisciplineLevel[]).map((level) => {
                                     const config = DISCIPLINE_LEVELS[level];
@@ -322,6 +385,25 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: ALTASAI_COLORS.border.secondary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: ALTASAI_SPACING[3],
+    },
+    checkboxSelected: {
+        borderColor: ALTASAI_COLORS.accent.primary,
+        backgroundColor: ALTASAI_COLORS.accent.primary,
+    },
+    checkmark: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.bold,
     },
     dotsContainer: {
         flexDirection: 'row',

@@ -17,6 +17,9 @@ const memory: SafeUserMemory = {
 };
 
 describe('ML service client', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
   afterEach(() => {
     jest.restoreAllMocks();
   });

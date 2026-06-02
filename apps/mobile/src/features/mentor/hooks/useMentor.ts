@@ -17,6 +17,7 @@ export const mentorQuickResponses = [
 ];
 
 const AI_MEMORY_KEY = 'altasai.aiMemoryEnabled';
+const CONVERSATION_ID_KEY = 'altasai.mentorConversationId';
 
 export const useMentor = () => {
   const { user, profile } = useAuthStore();
@@ -33,8 +34,11 @@ export const useMentor = () => {
   const isOfflineFallback = messages.some((msg) => msg.role === 'assistant' && msg.offline);
 
   useEffect(() => {
-    void AsyncStorage.getItem(AI_MEMORY_KEY).then((value) => {
-      if (value === 'false') setAiMemoryEnabled(false);
+    void AsyncStorage.multiGet([AI_MEMORY_KEY, CONVERSATION_ID_KEY]).then((entries) => {
+      const memoryValue = entries[0][1];
+      const savedConvId = entries[1][1];
+      if (memoryValue === 'false') setAiMemoryEnabled(false);
+      if (savedConvId) setConversationId(savedConvId);
     });
   }, []);
 
@@ -98,6 +102,7 @@ export const useMentor = () => {
 
       if (response.conversationId) {
         setConversationId(response.conversationId);
+        void AsyncStorage.setItem(CONVERSATION_ID_KEY, response.conversationId);
       }
 
       trackProductEvent(response.offline ? 'mentor_fallback_used' : 'mentor_response_received', {

@@ -22,7 +22,7 @@ export const ErrorState = ({
   style,
 }: ErrorStateProps) => (
   <GlassCard style={style} padding="lg">
-    <View style={styles.container}>
+    <View style={styles.container} accessibilityRole="alert" accessibilityLiveRegion="assertive">
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{formatUserFacingError(message)}</Text>
       {actionLabel && onAction ? (

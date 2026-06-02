@@ -45,6 +45,30 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
+const PasswordRequirements = ({ password }: { password: string }) => {
+  const checks = [
+    { label: '8+ characters', met: password.length >= 8 },
+    { label: 'Uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'Lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'Number', met: /\d/.test(password) },
+  ];
+
+  if (!password) return null;
+
+  return (
+    <View style={styles.requirements}>
+      {checks.map((check) => (
+        <Text
+          key={check.label}
+          style={[styles.requirementText, check.met && styles.requirementMet]}
+        >
+          {check.met ? '✓' : '○'} {check.label}
+        </Text>
+      ))}
+    </View>
+  );
+};
+
 export default function RegisterScreen() {
   const { register, isLoading, error, clearError } = useAuthStore();
   const showToast = useToastStore((state) => state.showToast);
@@ -53,6 +77,7 @@ export default function RegisterScreen() {
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -64,6 +89,8 @@ export default function RegisterScreen() {
     },
   });
 
+  const passwordValue = watch('password');
+
   const onSubmit = async (data: RegisterForm) => {
     try {
       safeImpactAsync(ImpactFeedbackStyle.Medium);
@@ -72,11 +99,7 @@ export default function RegisterScreen() {
       await register(data.email, data.password, data.displayName);
       safeNotificationAsync(NotificationFeedbackType.Success);
       showToast('Account created.', 'success');
-      // Navigate to root — auth gate will detect onboardingCompleted=false
-      // and route to onboarding screen
-      setTimeout(() => {
-        router.replace(ROUTES.ROOT);
-      }, 800);
+      router.replace(ROUTES.ROOT);
     } catch (err) {
       safeNotificationAsync(NotificationFeedbackType.Error);
       setShowError(true);
@@ -159,7 +182,7 @@ export default function RegisterScreen() {
                       autoCapitalize="none"
                       autoCorrect={false}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={(text) => { onChange(text); setShowError(false); }}
                       onBlur={onBlur}
                     />
                   )}
@@ -181,11 +204,12 @@ export default function RegisterScreen() {
                       placeholder="Minimum 8 characters"
                       placeholderTextColor={ALTASAI_COLORS.text.tertiary}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={(text) => { onChange(text); setShowError(false); }}
                       onBlur={onBlur}
                     />
                   )}
                 />
+                <PasswordRequirements password={passwordValue} />
                 {errors.password && (
                   <Text style={styles.fieldError}>{errors.password.message}</Text>
                 )}
@@ -323,6 +347,19 @@ const styles = StyleSheet.create({
     fontSize: ALTASAI_TYPOGRAPHY.size.xs,
     color: ALTASAI_COLORS.error.primary,
     marginTop: ALTASAI_SPACING[2],
+  },
+  requirements: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: ALTASAI_SPACING[2],
+    marginTop: ALTASAI_SPACING[2],
+  },
+  requirementText: {
+    fontSize: ALTASAI_TYPOGRAPHY.size.xs,
+    color: ALTASAI_COLORS.text.muted,
+  },
+  requirementMet: {
+    color: ALTASAI_COLORS.success.primary,
   },
   submitButton: {
     backgroundColor: ALTASAI_COLORS.accent.primary,

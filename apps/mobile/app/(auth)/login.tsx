@@ -36,6 +36,7 @@ export default function LoginScreen() {
   const { login, requestPasswordReset, isLoading, error, clearError } = useAuthStore();
   const showToast = useToastStore((state) => state.showToast);
   const [showError, setShowError] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Let the root navigator handle auth state changes automatically
   // No need for a declarative Redirect here as it can cause race conditions
@@ -60,14 +61,8 @@ export default function LoginScreen() {
       setShowError(false);
       await login(data.email, data.password);
       safeNotificationAsync(NotificationFeedbackType.Success);
-      
       showToast('Signed in.', 'success');
-      
-      // Delay navigation slightly to ensure the toast is briefly visible
-      // and auth state has propagated to the router's listener.
-      setTimeout(() => {
-        router.replace(ROUTES.ROOT);
-      }, 800);
+      router.replace(ROUTES.ROOT);
     } catch (err) {
       safeNotificationAsync(NotificationFeedbackType.Error);
       setShowError(true);
@@ -97,11 +92,15 @@ export default function LoginScreen() {
     }
 
     try {
+      setIsResettingPassword(true);
       await requestPasswordReset(email);
       safeNotificationAsync(NotificationFeedbackType.Success);
       showToast('Password reset email sent. Check your inbox.', 'success');
     } catch {
       safeNotificationAsync(NotificationFeedbackType.Error);
+      showToast('Could not send reset email. Try again.', 'error');
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -154,7 +153,7 @@ export default function LoginScreen() {
                       autoCapitalize="none"
                       autoCorrect={false}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={(text) => { onChange(text); setShowError(false); }}
                       onBlur={onBlur}
                     />
                   )}
@@ -201,10 +200,10 @@ export default function LoginScreen() {
               <Pressable
                 style={styles.forgotButton}
                 onPress={handleForgotPassword}
-                disabled={isLoading}
+                disabled={isLoading || isResettingPassword}
               >
-                <Text style={[styles.forgotText, !isLoading && styles.forgotTextActive]}>
-                  Forgot password?
+                <Text style={[styles.forgotText, !isLoading && !isResettingPassword && styles.forgotTextActive]}>
+                  {isResettingPassword ? 'Sending reset email...' : 'Forgot password?'}
                 </Text>
               </Pressable>
             </Animated.View>

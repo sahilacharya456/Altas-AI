@@ -6,7 +6,7 @@ import Animated from 'react-native-reanimated';
 import { AppHeader, ScreenContainer } from '../../src/components/layout';
 import { GradientButton, SectionHeader } from '../../src/components/common';
 import { CommandCard, StatCard } from '../../src/components/cards';
-import { EmptyState, ErrorState, RiskBadge, RiskLevel } from '../../src/components/feedback';
+import { EmptyState, ErrorState, LoadingState, RiskBadge, RiskLevel } from '../../src/components/feedback';
 import { AddTaskModal } from '../../src/components/common';
 import { ROUTES } from '../../src/constants/routes';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -19,7 +19,8 @@ import {
 } from '../../src/theme';
 import { altasaiCardEntrance } from '../../src/utils/animations';
 import { convertToDate } from '../../src/utils/dateUtils';
-import { safeNotificationAsync, NotificationFeedbackType } from '../../src/utils/haptics';
+import { safeNotificationAsync, NotificationFeedbackType, safeImpactAsync, ImpactFeedbackStyle } from '../../src/utils/haptics';
+import { useToastStore } from '../../src/stores/toastStore';
 import type { Task } from '../../src/types/firestore';
 
 type FilterStatus = 'today' | 'pending' | 'in_progress' | 'carried' | 'completed';
@@ -76,6 +77,7 @@ export default function TasksScreen() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('today');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const showToast = useToastStore((state) => state.showToast);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -117,11 +119,19 @@ export default function TasksScreen() {
     });
   };
 
+  const handleComplete = useCallback(async (taskId: string) => {
+    await markComplete(taskId);
+    safeNotificationAsync(NotificationFeedbackType.Success);
+    showToast('Task completed.', 'success');
+  }, [markComplete, showToast]);
+
   const handleCarry = useCallback(async (taskId: string) => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     await carry(taskId, tomorrow);
-  }, [carry]);
+    safeImpactAsync(ImpactFeedbackStyle.Medium);
+    showToast('Task carried to tomorrow.', 'info');
+  }, [carry, showToast]);
 
   const handleStartFocus = async (task: Task) => {
     if (!task.id) return;
@@ -198,12 +208,14 @@ export default function TasksScreen() {
       <Animated.View entering={altasaiCardEntrance(5)}>
         <SectionHeader title="Execution list" subtitle={`${filteredTasks.length} task${filteredTasks.length === 1 ? '' : 's'} shown.`} />
         <View style={styles.taskList}>
-          {filteredTasks.length > 0 ? (
+          {isLoading && filteredTasks.length === 0 ? (
+            <LoadingState message="Syncing your execution board" />
+          ) : filteredTasks.length > 0 ? (
             filteredTasks.map((task, index) => (
               <TaskCard
                 key={task.id ?? `${task.title}-${index}`}
                 task={task}
-                onComplete={() => task.id && markComplete(task.id)}
+                onComplete={() => task.id && handleComplete(task.id)}
                 onCarry={() => task.id && handleCarry(task.id)}
                 onFocus={() => handleStartFocus(task)}
                 onOpen={() => router.push({ pathname: ROUTES.MAIN.TASK_DETAIL, params: { taskId: task.id } } as any)}
@@ -211,8 +223,8 @@ export default function TasksScreen() {
             ))
           ) : (
             <EmptyState
-              title={isLoading ? 'Loading tasks' : 'No tasks in this view'}
-              message={isLoading ? 'AltasAI is syncing your execution board.' : 'Create a task or switch filters to find work.'}
+              title="No tasks in this view"
+              message="Create a task or switch filters to find work."
               actionLabel="Create task"
               onAction={() => setIsAddModalVisible(true)}
             />

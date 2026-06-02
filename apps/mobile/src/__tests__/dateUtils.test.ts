@@ -3,6 +3,13 @@ globalThis.__DEV__ = true;
 
 import { convertToDate, isSameDay, formatDate, isPast, isFuture } from '../utils/dateUtils';
 
+beforeEach(() => {
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('dateUtils', () => {
   describe('convertToDate', () => {
     it('returns Date object as-is', () => {

@@ -45,11 +45,18 @@ export default function ReportsScreen() {
 
   const generate = async (type: 'daily' | 'weekly' | 'monthly') => {
     setGenerating(type);
+    setError(null);
     try {
-      if (type === 'daily') await generateDailyReport();
-      if (type === 'weekly') await generateStoredWeeklyReport('Generate the weekly AltasAI performance report.');
-      if (type === 'monthly') await generateMonthlyReportPlaceholder();
+      let result: unknown = null;
+      if (type === 'daily') result = await generateDailyReport();
+      if (type === 'weekly') result = await generateStoredWeeklyReport('Generate the weekly AltasAI performance report.');
+      if (type === 'monthly') result = await generateMonthlyReportPlaceholder();
+      if (!result) {
+        setError('Report generation failed. Check your connection and try again.');
+      }
       await loadReports();
+    } catch (genError) {
+      setError(genError instanceof Error ? genError.message : 'Report generation failed.');
     } finally {
       setGenerating(null);
     }

@@ -295,28 +295,39 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         }
     },
 
-    // Mark task as complete
+    // Mark task as complete (optimistic)
     markComplete: async (taskId, actualMinutes) => {
+        const prevTasks = get().tasks;
+        set({
+            error: null,
+            tasks: prevTasks.map((t) =>
+                t.id === taskId ? { ...t, status: 'completed' as const } : t,
+            ),
+        });
+
         try {
-            set({ error: null });
             await completeTask(taskId, actualMinutes);
             NotificationService.cancelTaskReminder(taskId);
-
-            // Realtime subscription will update the list
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to complete task';
-            set({ error: message });
+            set({ tasks: prevTasks, error: error instanceof Error ? error.message : 'Failed to complete task' });
             throw error;
         }
     },
 
+    // Start task (optimistic)
     start: async (taskId) => {
+        const prevTasks = get().tasks;
+        set({
+            error: null,
+            tasks: prevTasks.map((t) =>
+                t.id === taskId ? { ...t, status: 'in_progress' as const } : t,
+            ),
+        });
+
         try {
-            set({ error: null });
             await startTask(taskId);
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to start task';
-            set({ error: message });
+            set({ tasks: prevTasks, error: error instanceof Error ? error.message : 'Failed to start task' });
             throw error;
         }
     },
@@ -332,18 +343,19 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         }
     },
 
-    // Carry task to a new date
+    // Carry task to a new date (optimistic)
     carry: async (taskId, newDate) => {
-        try {
-            set({ error: null });
-            await carryTask(taskId, newDate);
+        const prevTasks = get().tasks;
+        set({
+            error: null,
+            tasks: prevTasks.filter((t) => t.id !== taskId),
+        });
 
-            // Realtime subscription will update the list
-            // Also reload carried tasks list
+        try {
+            await carryTask(taskId, newDate);
             await get().loadCarriedTasks();
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to carry task';
-            set({ error: message });
+            set({ tasks: prevTasks, error: error instanceof Error ? error.message : 'Failed to carry task' });
             throw error;
         }
     },

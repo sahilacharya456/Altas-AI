@@ -12,3 +12,4 @@ export { MetricPill } from './MetricPill';
 export { ComingSoonScreen } from './ComingSoonScreen';
 export { OfflineBanner } from './OfflineBanner';
 export { Skeleton, SkeletonCard, SkeletonDashboard } from './Skeleton';
+export { SectionErrorBoundary } from './SectionErrorBoundary';

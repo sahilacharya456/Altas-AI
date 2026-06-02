@@ -5,7 +5,7 @@ import Animated from 'react-native-reanimated';
 import { GradientButton, SectionHeader } from '../../../components/common';
 import { ActionCard, CommandCard, InsightCard, InterventionCard, StatCard } from '../../../components/cards';
 import { ProgressRing } from '../../../components/charts';
-import { DisciplineBadge, EmptyState, ErrorState, RiskBadge, SkeletonDashboard } from '../../../components/feedback';
+import { DisciplineBadge, EmptyState, ErrorState, RiskBadge, SectionErrorBoundary, SkeletonDashboard } from '../../../components/feedback';
 import { AppHeader, ScreenContainer } from '../../../components/layout';
 import { AltasAICoreVisual } from '../../../components/ui';
 import { ALTASAI_COLORS } from '../../../theme';
@@ -116,45 +116,49 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
 
-      <Animated.View entering={altasaiCardEntrance(3)}>
-        <CommandCard
-          eyebrow="Daily command briefing"
-          title={commandState.topPriority}
-          right={<RiskBadge level={commandState.riskLevel} />}
-        >
-          <View style={styles.briefingBody}>
-            <View style={styles.briefingMetric}>
-              <Text style={styles.metricLabel}>Execution risk</Text>
-              <Text style={styles.metricValue}>{commandState.riskScore}%</Text>
+      <SectionErrorBoundary section="Command briefing">
+        <Animated.View entering={altasaiCardEntrance(3)}>
+          <CommandCard
+            eyebrow="Daily command briefing"
+            title={commandState.topPriority}
+            right={<RiskBadge level={commandState.riskLevel} />}
+          >
+            <View style={styles.briefingBody}>
+              <View style={styles.briefingMetric}>
+                <Text style={styles.metricLabel}>Execution risk</Text>
+                <Text style={styles.metricValue}>{commandState.riskScore}%</Text>
+              </View>
+              <View style={styles.briefingCopy}>
+                <Text style={styles.briefingLabel}>Reason</Text>
+                <Text style={styles.briefingText}>{commandState.riskReason}</Text>
+                <Text style={styles.briefingLabel}>Suggested action</Text>
+                <Text style={styles.briefingText}>{commandState.suggestedAction}</Text>
+              </View>
             </View>
-            <View style={styles.briefingCopy}>
-              <Text style={styles.briefingLabel}>Reason</Text>
-              <Text style={styles.briefingText}>{commandState.riskReason}</Text>
-              <Text style={styles.briefingLabel}>Suggested action</Text>
-              <Text style={styles.briefingText}>{commandState.suggestedAction}</Text>
-            </View>
-          </View>
-        </CommandCard>
-      </Animated.View>
+          </CommandCard>
+        </Animated.View>
+      </SectionErrorBoundary>
 
-      <Animated.View entering={altasaiCardEntrance(4)}>
-        <CommandCard eyebrow="Discipline score" title="Execution gauge">
-          <View style={styles.scoreLayout}>
-            <ProgressRing
-              progress={Math.max(0, Math.min(1, disciplineScore / 100))}
-              size={148}
-              strokeWidth={12}
-              label="Score"
-              gradientColors={[ALTASAI_COLORS.accent.bright, ALTASAI_COLORS.accent.violet]}
-            />
-            <View style={styles.scoreStats}>
-              <HomeStatPill label="Completed" value={`${summary.completed}/${summary.total}`} />
-              <HomeStatPill label="Progress" value={`${Math.round(commandState.completionRate * 100)}%`} />
-              <HomeStatPill label="Remaining" value={String(commandState.remainingTasks)} />
+      <SectionErrorBoundary section="Discipline score">
+        <Animated.View entering={altasaiCardEntrance(4)}>
+          <CommandCard eyebrow="Discipline score" title="Execution gauge">
+            <View style={styles.scoreLayout}>
+              <ProgressRing
+                progress={Math.max(0, Math.min(1, disciplineScore / 100))}
+                size={148}
+                strokeWidth={12}
+                label="Score"
+                gradientColors={[ALTASAI_COLORS.accent.bright, ALTASAI_COLORS.accent.violet]}
+              />
+              <View style={styles.scoreStats}>
+                <HomeStatPill label="Completed" value={`${summary.completed}/${summary.total}`} />
+                <HomeStatPill label="Progress" value={`${Math.round(commandState.completionRate * 100)}%`} />
+                <HomeStatPill label="Remaining" value={String(commandState.remainingTasks)} />
+              </View>
             </View>
-          </View>
-        </CommandCard>
-      </Animated.View>
+          </CommandCard>
+        </Animated.View>
+      </SectionErrorBoundary>
 
       <Animated.View entering={altasaiCardEntrance(5)}>
         <SectionHeader title="Top 3 actions" subtitle="Ranked by priority, carry debt, and schedule." />

@@ -41,11 +41,11 @@ const PRIORITIES: { id: Goal['priority']; label: string; color: string }[] = [
 ];
 
 const CATEGORIES: { id: Goal['category']; label: string; icon: string }[] = [
-    { id: 'career', label: 'Career', icon: '💼' },
-    { id: 'health', label: 'Health', icon: '❤️' },
-    { id: 'fitness', label: 'Fitness', icon: '🏋️' },
-    { id: 'study', label: 'Study', icon: '📚' },
-    { id: 'personal', label: 'Personal', icon: '🌱' },
+    { id: 'career', label: 'Career', icon: 'CR' },
+    { id: 'health', label: 'Health', icon: 'HL' },
+    { id: 'fitness', label: 'Fitness', icon: 'FT' },
+    { id: 'study', label: 'Study', icon: 'SD' },
+    { id: 'personal', label: 'Personal', icon: 'PG' },
 ];
 
 export const AddGoalModal: React.FC<AddGoalModalProps> = ({
@@ -122,7 +122,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                     <View style={styles.header}>
                         <Text style={styles.title}>New Vision</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close modal">
-                            <Text style={styles.closeButtonText}>✕</Text>
+                            <Text style={styles.closeButtonText}>X</Text>
                         </TouchableOpacity>
                     </View>
 

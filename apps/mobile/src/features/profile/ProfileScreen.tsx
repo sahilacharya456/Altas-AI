@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, Pressable, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View, Text, ScrollView, Pressable, Switch, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -15,7 +15,7 @@ import {
   GradientBackground,
   GlassCard,
 } from '../../components/ui';
-import { FOCUS_AREAS } from '../../constants/discipline';
+import { DISCIPLINE_LEVELS, FOCUS_AREAS, type DisciplineLevel, type FocusArea } from '../../constants/discipline';
 import { theme } from '../../theme';
 import { styles } from './components/profileStyles';
 import { useProfile } from './hooks/useProfile';
@@ -26,6 +26,7 @@ export default function ProfileScreen() {
     profile,
     disciplineConfig,
     userStats,
+    profileCompletion,
     notificationsEnabled,
     setNotificationsEnabled,
     hapticEnabled,
@@ -34,12 +35,69 @@ export default function ProfileScreen() {
     aiMemoryEnabled,
     handleLogout,
     showDisciplineOptions,
+    saveProfileChanges,
     showAppearanceOptions,
     goToSecuritySettings,
     exportData,
     showAiMemoryControls,
     showTermsAndPrivacy,
   } = useProfile();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [wakeTime, setWakeTime] = useState('06:00');
+  const [sleepTime, setSleepTime] = useState('22:00');
+  const [workStartTime, setWorkStartTime] = useState('09:00');
+  const [workEndTime, setWorkEndTime] = useState('17:00');
+  const [selectedAreas, setSelectedAreas] = useState<FocusArea[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<DisciplineLevel>('strict');
+
+  useEffect(() => {
+    setDisplayName(profile?.displayName ?? user?.displayName ?? '');
+    setWakeTime(profile?.lifeRhythm?.wakeTime ?? '06:00');
+    setSleepTime(profile?.lifeRhythm?.sleepTime ?? '22:00');
+    setWorkStartTime(profile?.lifeRhythm?.workStartTime ?? '09:00');
+    setWorkEndTime(profile?.lifeRhythm?.workEndTime ?? '17:00');
+    setSelectedAreas((profile?.focusAreas ?? []) as FocusArea[]);
+    setSelectedLevel(profile?.disciplineLevel ?? 'strict');
+  }, [
+    profile?.disciplineLevel,
+    profile?.displayName,
+    profile?.focusAreas,
+    profile?.lifeRhythm?.sleepTime,
+    profile?.lifeRhythm?.wakeTime,
+    profile?.lifeRhythm?.workEndTime,
+    profile?.lifeRhythm?.workStartTime,
+    user?.displayName,
+  ]);
+
+  const toggleArea = (area: FocusArea) => {
+    safeSelectionAsync();
+    setSelectedAreas((current) =>
+      current.includes(area) ? current.filter((item) => item !== area) : [...current, area]
+    );
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      await saveProfileChanges({
+        displayName: displayName.trim() || 'Commander',
+        disciplineLevel: selectedLevel,
+        focusAreas: selectedAreas.length ? selectedAreas : ['career'],
+        lifeRhythm: {
+          ...(profile?.lifeRhythm ?? {}),
+          wakeTime,
+          sleepTime,
+          workStartTime,
+          workEndTime,
+        },
+      });
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <GradientBackground variant="mesh">
@@ -69,7 +127,7 @@ export default function ProfileScreen() {
               </LinearGradient>
             </View>
 
-            <Text style={styles.userName}>{user?.displayName}</Text>
+            <Text style={styles.userName}>{profile?.displayName || user?.displayName || 'Commander'}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
 
             {/* Discipline Mode Badge */}
@@ -79,6 +137,54 @@ export default function ProfileScreen() {
                 {disciplineConfig.name} Mode
               </Text>
             </View>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(150).duration(600)}>
+            <Text style={styles.sectionTitle}>Profile Completion</Text>
+            <GlassCard style={styles.profileEditCard}>
+              <View style={styles.completionHeader}>
+                <View>
+                  <Text style={styles.completionValue}>{profileCompletion.percent}% complete</Text>
+                  <Text style={styles.completionText}>
+                    {profileCompletion.complete
+                      ? 'Profile is ready for personalized execution guidance.'
+                      : `Missing: ${profileCompletion.missing.join(', ')}`}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    safeSelectionAsync();
+                    setIsEditing((value) => !value);
+                  }}
+                  style={styles.editToggleButton}
+                >
+                  <Text style={styles.editToggleText}>{isEditing ? 'Close' : 'Edit'}</Text>
+                </Pressable>
+              </View>
+
+              {isEditing ? (
+                <ProfileEditForm
+                  displayName={displayName}
+                  wakeTime={wakeTime}
+                  sleepTime={sleepTime}
+                  workStartTime={workStartTime}
+                  workEndTime={workEndTime}
+                  selectedAreas={selectedAreas}
+                  selectedLevel={selectedLevel}
+                  isSaving={isSaving}
+                  onDisplayNameChange={setDisplayName}
+                  onWakeTimeChange={setWakeTime}
+                  onSleepTimeChange={setSleepTime}
+                  onWorkStartChange={setWorkStartTime}
+                  onWorkEndChange={setWorkEndTime}
+                  onToggleArea={toggleArea}
+                  onLevelChange={setSelectedLevel}
+                  onCancel={() => setIsEditing(false)}
+                  onSave={handleSaveProfile}
+                />
+              ) : null}
+            </GlassCard>
           </Animated.View>
 
           {/* Quick Stats */}
@@ -237,6 +343,136 @@ interface RhythmItemProps {
   icon: string;
   label: string;
   value: string;
+}
+
+interface ProfileEditFormProps {
+  displayName: string;
+  wakeTime: string;
+  sleepTime: string;
+  workStartTime: string;
+  workEndTime: string;
+  selectedAreas: FocusArea[];
+  selectedLevel: DisciplineLevel;
+  isSaving: boolean;
+  onDisplayNameChange: (value: string) => void;
+  onWakeTimeChange: (value: string) => void;
+  onSleepTimeChange: (value: string) => void;
+  onWorkStartChange: (value: string) => void;
+  onWorkEndChange: (value: string) => void;
+  onToggleArea: (area: FocusArea) => void;
+  onLevelChange: (level: DisciplineLevel) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}
+
+function ProfileEditForm({
+  displayName,
+  wakeTime,
+  sleepTime,
+  workStartTime,
+  workEndTime,
+  selectedAreas,
+  selectedLevel,
+  isSaving,
+  onDisplayNameChange,
+  onWakeTimeChange,
+  onSleepTimeChange,
+  onWorkStartChange,
+  onWorkEndChange,
+  onToggleArea,
+  onLevelChange,
+  onCancel,
+  onSave,
+}: ProfileEditFormProps) {
+  return (
+    <View style={styles.editForm}>
+      <View style={styles.editField}>
+        <Text style={styles.editLabel}>Display name</Text>
+        <TextInput
+          value={displayName}
+          onChangeText={onDisplayNameChange}
+          placeholder="Commander"
+          placeholderTextColor={theme.colors.text.tertiary}
+          style={styles.editInput}
+        />
+      </View>
+
+      <View style={styles.editField}>
+        <Text style={styles.editLabel}>Mentor mode</Text>
+        <View style={styles.choiceRow}>
+          {(Object.keys(DISCIPLINE_LEVELS) as DisciplineLevel[]).map((level) => {
+            const config = DISCIPLINE_LEVELS[level];
+            const active = selectedLevel === level;
+            return (
+              <Pressable
+                key={level}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                onPress={() => onLevelChange(level)}
+                style={[styles.choiceChip, active && { borderColor: config.color, backgroundColor: `${config.color}22` }]}
+              >
+                <Text style={[styles.choiceText, active && { color: config.color }]}>{config.name}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.editField}>
+        <Text style={styles.editLabel}>Focus areas</Text>
+        <View style={styles.choiceRow}>
+          {(Object.keys(FOCUS_AREAS) as FocusArea[]).map((area) => {
+            const config = FOCUS_AREAS[area];
+            const active = selectedAreas.includes(area);
+            return (
+              <Pressable
+                key={area}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                onPress={() => onToggleArea(area)}
+                style={[styles.choiceChip, active && styles.choiceChipActive]}
+              >
+                <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{config.name}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.timeGrid}>
+        <ProfileTimeInput label="Wake" value={wakeTime} onChange={onWakeTimeChange} />
+        <ProfileTimeInput label="Sleep" value={sleepTime} onChange={onSleepTimeChange} />
+        <ProfileTimeInput label="Focus start" value={workStartTime} onChange={onWorkStartChange} />
+        <ProfileTimeInput label="Focus end" value={workEndTime} onChange={onWorkEndChange} />
+      </View>
+
+      <View style={styles.editActions}>
+        <Pressable accessibilityRole="button" onPress={onCancel} disabled={isSaving} style={styles.cancelButton}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onSave} disabled={isSaving} style={styles.saveButton}>
+          {isSaving ? <ActivityIndicator color="#061018" /> : <Text style={styles.saveText}>Save profile</Text>}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function ProfileTimeInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <View style={styles.timeInputGroup}>
+      <Text style={styles.editLabel}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder="09:00"
+        placeholderTextColor={theme.colors.text.tertiary}
+        keyboardType="numbers-and-punctuation"
+        maxLength={5}
+        style={styles.editInput}
+      />
+    </View>
+  );
 }
 
 function RhythmItem({ icon, label, value }: RhythmItemProps) {

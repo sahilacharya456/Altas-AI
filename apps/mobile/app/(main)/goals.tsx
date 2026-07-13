@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { AppHeader, ScreenContainer } from '../../src/components/layout';
@@ -35,6 +35,10 @@ export default function GoalsScreen() {
     goals,
     initialize,
     addGoal,
+    editGoal,
+    removeGoal,
+    markComplete,
+    setProgress,
     completeMilestone,
     generateBreakdown,
     isLoading,
@@ -96,6 +100,60 @@ export default function GoalsScreen() {
     } finally {
       setBusyGoalId(null);
     }
+  };
+
+  const handleEditGoal = async (goal: Goal, data: Partial<Goal>) => {
+    if (!goal.id) return;
+    try {
+      await editGoal(goal.id, data);
+      showToast('Goal updated.', 'success');
+    } catch (editError) {
+      showToast(editError instanceof Error ? editError.message : 'Goal could not be updated.', 'error');
+    }
+  };
+
+  const handleProgressChange = async (goal: Goal, progress: number) => {
+    if (!goal.id) return;
+    try {
+      await setProgress(goal.id, progress);
+    } catch (progressError) {
+      showToast(progressError instanceof Error ? progressError.message : 'Goal progress could not be updated.', 'error');
+    }
+  };
+
+  const handleCompleteGoal = async (goal: Goal) => {
+    if (!goal.id) return;
+    try {
+      await markComplete(goal.id);
+      showToast('Goal completed.', 'success');
+      await safeNotificationAsync(NotificationFeedbackType.Success);
+    } catch (completeError) {
+      showToast(completeError instanceof Error ? completeError.message : 'Goal could not be completed.', 'error');
+    }
+  };
+
+  const confirmDeleteGoal = (goal: Goal) => {
+    if (!goal.id) return;
+
+    Alert.alert(
+      'Delete goal?',
+      `This removes "${goal.title}" and its milestones.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeGoal(goal.id!);
+              showToast('Goal deleted.', 'success');
+            } catch (deleteError) {
+              showToast(deleteError instanceof Error ? deleteError.message : 'Goal could not be deleted.', 'error');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const convertMilestoneToTask = async (goal: Goal, milestoneTitle: string) => {
@@ -160,6 +218,10 @@ export default function GoalsScreen() {
                 goal={goal}
                 busy={busyGoalId === goal.id}
                 onBreakdown={() => handleBreakdown(goal)}
+                onEdit={(data) => handleEditGoal(goal, data)}
+                onProgressChange={(progress) => handleProgressChange(goal, progress)}
+                onCompleteGoal={() => handleCompleteGoal(goal)}
+                onDelete={() => confirmDeleteGoal(goal)}
                 onCompleteMilestone={(milestoneIndex) => goal.id && completeMilestone(goal.id, milestoneIndex)}
                 onConvertMilestone={(title) => convertMilestoneToTask(goal, title)}
               />
@@ -188,18 +250,42 @@ const GoalCard = ({
   goal,
   busy,
   onBreakdown,
+  onEdit,
+  onProgressChange,
+  onCompleteGoal,
+  onDelete,
   onCompleteMilestone,
   onConvertMilestone,
 }: {
   goal: Goal;
   busy: boolean;
   onBreakdown: () => void;
+  onEdit: (data: Partial<Goal>) => void;
+  onProgressChange: (progress: number) => void;
+  onCompleteGoal: () => void;
+  onDelete: () => void;
   onCompleteMilestone: (index: number) => void;
   onConvertMilestone: (title: string) => void;
 }) => {
   const targetDate = convertToDate(goal.targetDate);
   const daysLeft = Math.ceil((targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const milestones = goal.milestones ?? goal.aiBreakdown?.map((title) => ({ title, completed: false })) ?? [];
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(goal.title);
+  const [draftDescription, setDraftDescription] = useState(goal.description ?? '');
+
+  useEffect(() => {
+    setDraftTitle(goal.title);
+    setDraftDescription(goal.description ?? '');
+  }, [goal.description, goal.title]);
+
+  const saveEdits = () => {
+    onEdit({
+      title: draftTitle.trim() || goal.title,
+      description: draftDescription.trim(),
+    });
+    setIsEditing(false);
+  };
 
   return (
     <CommandCard
@@ -214,15 +300,67 @@ const GoalCard = ({
             variant="secondary"
             disabled={busy}
             onPress={onBreakdown}
+            style={styles.goalActionButton}
+          />
+          <GradientButton
+            title={isEditing ? 'Close' : 'Edit'}
+            size="sm"
+            variant="ghost"
+            onPress={() => setIsEditing((value) => !value)}
+            style={styles.goalActionButton}
+          />
+          <GradientButton
+            title="Done"
+            size="sm"
+            variant="ghost"
+            onPress={onCompleteGoal}
+            style={styles.goalActionButton}
+          />
+          <GradientButton
+            title="Delete"
+            size="sm"
+            variant="danger"
+            onPress={onDelete}
+            style={styles.goalActionButton}
           />
         </View>
       }
     >
+      {isEditing ? (
+        <View style={styles.editPanel}>
+          <Text style={styles.inputLabel}>Title</Text>
+          <TextInput
+            value={draftTitle}
+            onChangeText={setDraftTitle}
+            placeholder="Goal title"
+            placeholderTextColor={ALTASAI_COLORS.text.muted}
+            style={styles.goalInput}
+            maxLength={80}
+          />
+          <Text style={styles.inputLabel}>Description</Text>
+          <TextInput
+            value={draftDescription}
+            onChangeText={setDraftDescription}
+            placeholder="Why this goal matters"
+            placeholderTextColor={ALTASAI_COLORS.text.muted}
+            style={[styles.goalInput, styles.goalTextArea]}
+            maxLength={240}
+            multiline
+          />
+          <GradientButton title="Save changes" size="sm" onPress={saveEdits} />
+        </View>
+      ) : null}
       {goal.description ? <Text style={styles.goalDescription}>{goal.description}</Text> : null}
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, goal.progress))}%` }]} />
       </View>
-      <Text style={styles.progressText}>{goal.progress}% progress</Text>
+      <View style={styles.progressRow}>
+        <Text style={styles.progressText}>{goal.progress}% progress</Text>
+        <View style={styles.progressActions}>
+          <GradientButton title="-10" size="sm" variant="ghost" onPress={() => onProgressChange(Math.max(0, goal.progress - 10))} />
+          <GradientButton title="+10" size="sm" variant="ghost" onPress={() => onProgressChange(Math.min(100, goal.progress + 10))} />
+        </View>
+      </View>
 
       <View style={styles.milestoneList}>
         {milestones.length > 0 ? (
@@ -279,10 +417,20 @@ const styles = StyleSheet.create({
     backgroundColor: ALTASAI_COLORS.accent.bright,
   },
   progressText: {
-    marginTop: ALTASAI_SPACING.xs,
     color: ALTASAI_COLORS.text.tertiary,
     fontSize: ALTASAI_TYPOGRAPHY.size.xs,
     fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
+  },
+  progressRow: {
+    marginTop: ALTASAI_SPACING.xs,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: ALTASAI_SPACING.sm,
+  },
+  progressActions: {
+    flexDirection: 'row',
+    gap: ALTASAI_SPACING.xs,
   },
   milestoneList: {
     marginTop: ALTASAI_SPACING.md,
@@ -321,6 +469,36 @@ const styles = StyleSheet.create({
   goalActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: ALTASAI_SPACING.sm,
+  },
+  goalActionButton: {
+    minWidth: 92,
+  },
+  editPanel: {
+    gap: ALTASAI_SPACING.sm,
+    marginBottom: ALTASAI_SPACING.md,
+  },
+  inputLabel: {
+    color: ALTASAI_COLORS.text.tertiary,
+    fontSize: ALTASAI_TYPOGRAPHY.size.xs,
+    fontWeight: ALTASAI_TYPOGRAPHY.weight.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  goalInput: {
+    minHeight: 44,
+    borderRadius: ALTASAI_RADIUS.md,
+    borderWidth: 1,
+    borderColor: ALTASAI_COLORS.border.primary,
+    backgroundColor: ALTASAI_COLORS.surface.subtle,
+    color: ALTASAI_COLORS.text.primary,
+    paddingHorizontal: ALTASAI_SPACING.md,
+    paddingVertical: ALTASAI_SPACING.sm,
+    fontSize: ALTASAI_TYPOGRAPHY.size.sm,
+  },
+  goalTextArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 });

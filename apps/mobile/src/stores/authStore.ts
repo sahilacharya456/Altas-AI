@@ -359,7 +359,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const profile = await getProfile();
       set({ profile });
     } catch (error) {
-      // Silent fail — profile subscription is the primary source
+      // Silent fail: profile subscription is the primary source.
     }
   },
 

@@ -27,3 +27,5 @@ export type {
 export { generateSecurityAdvice } from './security';
 export { analyzeBudgetDiscipline } from './budget';
 export type { BudgetInsight } from './budget';
+export { reviewProof } from './proof';
+export type { ProofReviewResult, ProofStatus, ProofType } from './proof';

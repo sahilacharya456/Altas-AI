@@ -45,6 +45,29 @@ export interface MlRecommendation {
   suggestedTask?: unknown;
 }
 
+export interface MlRagResult {
+  retrievedContext: string[];
+  sourceIds: (string | null)[];
+  relevanceScores: number[];
+  evidenceSummary: string;
+  contextForMentor: string;
+  citations: unknown[];
+  hasResults: boolean;
+}
+
+export interface MlReflectionResult {
+  sentimentScore: number;
+  emotionLabels: string[];
+  stressScore: number;
+  motivationScore: number;
+  confidenceScore: number;
+  burnoutRiskSignal: number;
+  blockers: string[];
+  wins: string[];
+  themes: string[];
+  recommendedIntervention: string;
+}
+
 const safePath = (path: string) => path.startsWith('/') ? path : `/${path}`;
 
 export class MlServiceClient {
@@ -105,7 +128,19 @@ export class MlServiceClient {
   }
 
   queryRag(query: string, topK = 3) {
-    return this.request('/rag/query', { query, topK });
+    return this.request<MlRagResult>('/rag/query', { query, topK });
+  }
+
+  queryRagForUser(userId: string, query: string, topK = 3) {
+    return this.request<MlRagResult>('/rag/query/user', { userId, query, topK });
+  }
+
+  indexUserMemory(userId: string, documents: Array<{ id: string; text: string; metadata?: Record<string, unknown> }>) {
+    return this.request<{ indexed: number; userId: string }>('/rag/index/user', { userId, documents });
+  }
+
+  analyzeReflection(text: string) {
+    return this.request<MlReflectionResult>('/predict/reflection', { text });
   }
 
   analyzeVision(payload: Record<string, unknown>) {

@@ -15,6 +15,7 @@ import {
     Timestamp,
 } from '../firebase';
 import { Task } from '../../types/firestore';
+import { buildTaskSummary, type TaskSummary } from '../../utils/taskSummary';
 
 const COLLECTION = 'tasks';
 
@@ -164,27 +165,9 @@ export const subscribeToTodaysTasks = (
 /**
  * Get task summary for a date
  */
-export const getTaskSummary = async (userId: string, date: Date): Promise<{
-    total: number;
-    completed: number;
-    pending: number;
-    carried: number;
-    completionRate: number;
-}> => {
+export const getTaskSummary = async (userId: string, date: Date): Promise<TaskSummary> => {
     const tasks = await getTasksForDate(userId, date);
-
-    const completed = tasks.filter(t => t.status === 'completed').length;
-    const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
-    const carried = tasks.filter(t => t.status === 'carried').length;
-    const total = tasks.length;
-
-    return {
-        total,
-        completed,
-        pending,
-        carried,
-        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-    };
+    return buildTaskSummary(tasks);
 };
 
 /**

@@ -22,6 +22,42 @@ const isRetryable = (error: unknown): boolean => {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export const callBackendGet = async <TResponse>(
+  path: string,
+  timeoutMs = REQUEST_TIMEOUT_MS
+): Promise<TResponse> => {
+  const token = await getIdToken();
+  if (!token) {
+    throw new BackendApiError('You must be signed in before using AltasAI services.', 401);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = payload?.error?.message || 'AltasAI backend request failed.';
+      throw new BackendApiError(message, response.status);
+    }
+    return payload as TResponse;
+  } catch (error) {
+    if (error instanceof BackendApiError) throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new BackendApiError('AltasAI backend request timed out.', 408);
+    }
+    throw new BackendApiError('AltasAI backend is not reachable.');
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export const callBackend = async <TResponse>(
   path: string,
   body: Record<string, unknown> = {},

@@ -1,1 +1,1 @@
-export { chatWithMentor } from '../../../services/ai/mentor';
+export { chatWithMentor, recordMentorReward } from '../../../services/ai/mentor';

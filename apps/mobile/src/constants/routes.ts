@@ -4,6 +4,7 @@ export const ROUTES = {
     WELCOME: '/(auth)/welcome',
     LOGIN: '/(auth)/login',
     REGISTER: '/(auth)/register',
+    FORGOT_PASSWORD: '/(auth)/forgot-password',
     ONBOARDING: '/(auth)/onboarding',
   },
   MAIN: {
@@ -20,6 +21,7 @@ export const ROUTES = {
     DAILY_REPORT: '/(main)/daily-report',
     WEEKLY_REPORT: '/(main)/weekly-report',
     PROFILE: '/(main)/profile',
+    SUBSCRIPTION: '/(main)/subscription',
     ANALYTICS: '/(main)/analytics',
     KHATA: '/(main)/khata',
     ADD_EXPENSE: '/(main)/add-expense',
@@ -33,5 +35,6 @@ export const ROUTES = {
     HEALTH: '/(main)/health',
     REFLECTION: '/(main)/reflection',
     NEWS: '/(main)/news',
+    PROOF: '/(main)/proof',
   },
 } as const;

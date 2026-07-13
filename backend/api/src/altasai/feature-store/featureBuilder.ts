@@ -33,7 +33,18 @@ export const buildFeatures = (memory: SafeUserMemory, now = new Date()): BuiltFe
   });
 
   const reflectionText = reflections.map((reflection) => JSON.stringify(reflection)).join(' ');
-  const reflectionAnalysis = analyzeReflectionText(reflectionText);
+  const tsReflectionAnalysis = analyzeReflectionText(reflectionText);
+
+  // Prefer the ML service analysis when available (richer signals)
+  const mlAnalysis = memory.reflectionAnalysis;
+  const reflectionAnalysis = mlAnalysis
+    ? {
+        moodScore: Math.round(((mlAnalysis.sentimentScore + 1) / 2) * 5),
+        stressScore: mlAnalysis.stressScore,
+        burnoutRiskSignal: mlAnalysis.burnoutRiskSignal,
+        motivationScore: mlAnalysis.motivationScore,
+      }
+    : tsReflectionAnalysis;
   const totalFocusMinutes = focusSessions.reduce((sum, session) => sum + Number(session.durationMinutes ?? session.minutes ?? 0), 0);
   const successfulFocusSessions = focusSessions.filter((session) => String(session.status ?? 'completed') === 'completed').length;
   const averageGoalProgress = goals.length
@@ -56,7 +67,9 @@ export const buildFeatures = (memory: SafeUserMemory, now = new Date()): BuiltFe
 
   const workloadScore = clamp(openTasks.length * 9 + criticalTasks.length * 12 + overdueTasks.length * 10);
   const procrastinationScore = clamp(carriedTasks.length * 22 + overdueTaskRatio * 45 + (reflectionText.match(/delay|avoid|scroll|wasted/gi)?.length ?? 0) * 8);
-  const burnoutSignalScore = clamp(reflectionAnalysis.stressScore * 0.7 + workloadScore * 0.35 + inactivityDays * 3);
+  const burnoutSignalScore = mlAnalysis
+    ? clamp(mlAnalysis.burnoutRiskSignal * 0.6 + reflectionAnalysis.stressScore * 0.25 + workloadScore * 0.15 + inactivityDays * 2)
+    : clamp(reflectionAnalysis.stressScore * 0.7 + workloadScore * 0.35 + inactivityDays * 3);
 
   return {
     totalTasks,

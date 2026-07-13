@@ -81,7 +81,7 @@ export default function ReflectionScreen() {
         return (
           <TextInputStep
             title="What Blocked You"
-            subtitle="Be honest — what slowed execution?"
+            subtitle="Be honest - what slowed execution?"
             placeholder="Got distracted, underestimated the task, skipped the focus block..."
             value={challenges}
             onChange={setChallenges}

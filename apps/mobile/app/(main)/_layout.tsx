@@ -146,6 +146,7 @@ export default function MainLayout() {
       <Tabs.Screen name="budget-insights" options={{ href: null }} />
       <Tabs.Screen name="task-detail" options={{ href: null }} />
       <Tabs.Screen name="focus" options={{ href: null }} />
+      <Tabs.Screen name="subscription" options={{ href: null }} />
     </Tabs>
     </View>
   );

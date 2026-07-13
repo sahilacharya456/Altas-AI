@@ -97,11 +97,30 @@ export interface MentorResponsePlan {
   fallbackResponse: string;
 }
 
+export interface ConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface AltasAIContext {
   userId: string;
   message?: string;
   memory: SafeUserMemory;
   now?: Date;
+  contextType?: 'general' | 'morning' | 'task_review' | 'reflection';
+  conversationHistory?: ConversationTurn[];
+  clientContext?: {
+    pendingTasks: number;
+    completedTasks: number;
+    completionRate: number;
+    activeGoalCount: number;
+    topGoalTitle?: string;
+    topGoalProgress?: number;
+    disciplineLevel?: string;
+    focusAreas?: string[];
+    currentScores?: { discipline: number; productivity: number; consistency: number };
+    lifeRhythm?: { wakeTime?: string; sleepTime?: string; timezone?: string };
+  };
 }
 
 export interface BuiltFeatures {

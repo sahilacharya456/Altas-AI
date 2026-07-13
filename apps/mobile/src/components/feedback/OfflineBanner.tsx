@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ALTASAI_COLORS, ALTASAI_SPACING, ALTASAI_TYPOGRAPHY } from '../../theme';
+import { ALTASAI_SPACING, ALTASAI_TYPOGRAPHY } from '../../theme';
 
 interface OfflineBannerProps {
   visible: boolean;
@@ -12,7 +12,7 @@ export const OfflineBanner = ({ visible }: OfflineBannerProps) => {
   return (
     <View style={styles.container} accessibilityRole="alert">
       <View style={styles.dot} />
-      <Text style={styles.text}>Offline — changes will sync when reconnected</Text>
+      <Text style={styles.text}>Offline - changes will sync when reconnected</Text>
     </View>
   );
 };

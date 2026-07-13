@@ -10,17 +10,29 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { MentorModeConfig } from '../types';
+import { useAnalyticsStore } from '../../../stores/analyticsStore';
 import { styles } from './mentorStyles';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const mentorAvatar = require('../../../../assets/images/mentor-avatar.png') as number;
 
+interface TaskSummary {
+  pending: number;
+  completed: number;
+  completionRate: number;
+}
+
 interface MentorHeaderProps {
   mode: MentorModeConfig;
   isOfflineFallback: boolean;
+  taskSummary?: TaskSummary | null;
 }
 
-export function MentorHeader({ mode, isOfflineFallback }: MentorHeaderProps) {
+export function MentorHeader({ mode, isOfflineFallback, taskSummary }: MentorHeaderProps) {
+  const scores = useAnalyticsStore((state) => state.dashboard?.scores);
+  const execScore = scores ? Math.round((scores.productivity + scores.discipline + scores.consistency) / 3) : null;
+  const showTasks = taskSummary && (taskSummary.pending + taskSummary.completed) > 0;
+
   return (
     <Animated.View entering={FadeInDown.duration(520)} style={styles.header}>
       <View style={styles.headerLeft}>
@@ -35,6 +47,13 @@ export function MentorHeader({ mode, isOfflineFallback }: MentorHeaderProps) {
         <View style={styles.headerCopy}>
           <Text style={styles.headerEyebrow}>{mode.name.toUpperCase()} MENTOR</Text>
           <Text style={styles.headerTitle}>AltasAI</Text>
+          {(showTasks || execScore !== null) && (
+            <Text style={styles.headerTaskLine}>
+              {showTasks ? `${taskSummary.completed}/${taskSummary.pending + taskSummary.completed} tasks` : ''}
+              {showTasks && execScore !== null ? '  |  ' : ''}
+              {execScore !== null ? `Exec ${execScore}%` : ''}
+            </Text>
+          )}
         </View>
       </View>
 

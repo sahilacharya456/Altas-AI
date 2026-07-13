@@ -108,6 +108,16 @@ env/
 *.egg-info/
 .eggs/
 backend/ml-service/app/models/trained/*.tmp
+backend/ml-service/app/models/trained/*.joblib
+backend/ml-service/app/models/registry/rag/
+
+# ChromaDB
+chroma_data/
+.chroma/
+
+# Detox E2E artifacts
+apps/mobile/e2e/artifacts/
+apps/mobile/e2e/recordings/
 
 # Redis dump
 dump.rdb

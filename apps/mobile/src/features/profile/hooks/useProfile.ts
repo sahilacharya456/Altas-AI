@@ -11,6 +11,8 @@ import { useToastStore } from '../../../stores/toastStore';
 import { convertToDate } from '../../../utils/dateUtils';
 import { getErrorMessage } from '../../../utils/errors';
 import { safeNotificationAsync, safeSelectionAsync, NotificationFeedbackType } from '../../../utils/haptics';
+import { getProfileCompletion } from '../utils/profileCompletion';
+import type { UserProfile } from '../../../types/firestore';
 
 type AppearanceMode = 'Dark' | 'System' | 'High Contrast';
 
@@ -66,6 +68,8 @@ export function useProfile() {
     profile?.createdAt,
   ]);
 
+  const profileCompletion = useMemo(() => getProfileCompletion(profile), [profile]);
+
   const handleLogout = () => {
     safeNotificationAsync(NotificationFeedbackType.Warning);
     Alert.alert(
@@ -91,6 +95,16 @@ export function useProfile() {
       showToast(`Discipline level set to ${DISCIPLINE_LEVELS[level].name}.`, 'success');
     } catch (error) {
       showToast(getErrorMessage(error, 'Could not update discipline level.'), 'error');
+    }
+  };
+
+  const saveProfileChanges = async (data: Partial<Pick<UserProfile, 'displayName' | 'focusAreas' | 'lifeRhythm' | 'disciplineLevel'>>) => {
+    try {
+      await updateProfile(data);
+      showToast('Profile updated.', 'success');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Could not update profile.'), 'error');
+      throw error;
     }
   };
 
@@ -217,6 +231,7 @@ export function useProfile() {
     profile,
     disciplineConfig,
     userStats,
+    profileCompletion,
     notificationsEnabled,
     setNotificationsEnabled,
     hapticEnabled,
@@ -225,6 +240,7 @@ export function useProfile() {
     aiMemoryEnabled,
     handleLogout,
     showDisciplineOptions,
+    saveProfileChanges,
     showAppearanceOptions,
     goToSecuritySettings,
     exportData,

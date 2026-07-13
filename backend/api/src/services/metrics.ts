@@ -1,5 +1,28 @@
 import type { Request, Response } from 'express';
 
+// ── Business event counters (in-process, reset on restart — complement Firestore) ──
+const businessCounters = {
+  proof_submitted: 0,
+  proof_verified: 0,
+  proof_weak: 0,
+  proof_rejected: 0,
+  github_proof_verified: 0,
+  mentor_message_sent: 0,
+  mentor_fallback_used: 0,
+  proof_feed_published: 0,
+  subscription_check_free: 0,
+  subscription_check_pro: 0,
+  subscription_check_team: 0,
+};
+
+export type BusinessEvent = keyof typeof businessCounters;
+
+export const recordBusinessEvent = (event: BusinessEvent): void => {
+  businessCounters[event]++;
+};
+
+export const getBusinessMetrics = () => ({ ...businessCounters });
+
 interface RouteMetric {
   count: number;
   errors: number;

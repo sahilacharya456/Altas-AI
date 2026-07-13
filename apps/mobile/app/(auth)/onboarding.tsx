@@ -34,25 +34,25 @@ export default function OnboardingScreen() {
             title: 'Welcome to AltasAI',
             subtitle: 'Your Personal Discipline & Life Operating System',
             description: 'Build disciplined, focused, self-aware habits. This is not a social app. This is a human development system.',
-            emoji: '🎯',
+            icon: 'GO',
         },
         {
             title: 'Track Your Discipline',
             subtitle: 'Daily Tasks, Goals & Reflections',
             description: 'Create tasks, set goals, and reflect on your progress every night. AltasAI learns from your patterns and holds you accountable.',
-            emoji: '📊',
+            icon: 'TR',
         },
         {
             title: 'Your Focus Areas',
             subtitle: 'What are you building discipline around?',
             description: 'Select the areas you want AltasAI to help you with. Pick at least one.',
-            emoji: '🧭',
+            icon: 'FA',
         },
         {
             title: 'Choose Your Mentor Mode',
             subtitle: 'How strict should AltasAI be?',
             description: 'Select your accountability level. You can change this anytime in Profile settings.',
-            emoji: '⚡',
+            icon: 'AI',
         },
     ];
 
@@ -127,8 +127,8 @@ export default function OnboardingScreen() {
                             </Pressable>
                         )}
 
-                        {/* Emoji */}
-                        <Text style={styles.emoji}>{currentStep.emoji}</Text>
+                        {/* Step icon */}
+                        <Text style={styles.emoji}>{currentStep.icon}</Text>
 
                         {/* Title */}
                         <Text style={styles.title}>{currentStep.title}</Text>
@@ -169,7 +169,7 @@ export default function OnboardingScreen() {
                                                 styles.checkbox,
                                                 isSelected && styles.checkboxSelected,
                                             ]}>
-                                                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                                                {isSelected && <Text style={styles.checkmark}>OK</Text>}
                                             </View>
                                         </Pressable>
                                     );
@@ -293,7 +293,10 @@ const styles = StyleSheet.create({
         fontWeight: ALTASAI_TYPOGRAPHY.weight.semibold,
     },
     emoji: {
-        fontSize: 72,
+        fontSize: 40,
+        letterSpacing: 2,
+        fontWeight: ALTASAI_TYPOGRAPHY.weight.bold,
+        color: ALTASAI_COLORS.primary.light,
         marginBottom: ALTASAI_SPACING[6],
     },
     title: {
@@ -402,7 +405,7 @@ const styles = StyleSheet.create({
     },
     checkmark: {
         color: '#FFFFFF',
-        fontSize: 14,
+        fontSize: 10,
         fontWeight: ALTASAI_TYPOGRAPHY.weight.bold,
     },
     dotsContainer: {

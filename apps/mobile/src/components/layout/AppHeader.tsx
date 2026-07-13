@@ -41,7 +41,7 @@ export const AppHeader = ({
           hitSlop={8}
           style={styles.backButton}
         >
-          <Text style={styles.backText} accessibilityElementsHidden>←</Text>
+          <Text style={styles.backText} accessibilityElementsHidden>{'<'}</Text>
         </Pressable>
       ) : left}
       <View style={styles.titleBlock}>

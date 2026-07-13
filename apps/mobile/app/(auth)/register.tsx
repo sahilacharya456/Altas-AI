@@ -62,7 +62,7 @@ const PasswordRequirements = ({ password }: { password: string }) => {
           key={check.label}
           style={[styles.requirementText, check.met && styles.requirementMet]}
         >
-          {check.met ? '✓' : '○'} {check.label}
+          {check.met ? 'OK' : '--'} {check.label}
         </Text>
       ))}
     </View>

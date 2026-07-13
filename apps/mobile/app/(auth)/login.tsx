@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   View,
   Text,
   TextInput,
@@ -33,10 +32,9 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
-  const { login, requestPasswordReset, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError } = useAuthStore();
   const showToast = useToastStore((state) => state.showToast);
   const [showError, setShowError] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Let the root navigator handle auth state changes automatically
   // No need for a declarative Redirect here as it can cause race conditions
@@ -44,7 +42,6 @@ export default function LoginScreen() {
   const {
     control,
     handleSubmit,
-    getValues,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -74,35 +71,7 @@ export default function LoginScreen() {
     router.back();
   };
 
-  const handleForgotPassword = async () => {
-    const email = getValues('email')?.trim();
-
-    if (!email) {
-      Alert.alert(
-        'Enter your email',
-        'Please enter your email address in the field above, then tap "Forgot password?" again.',
-      );
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Invalid email', 'Please enter a valid email address.');
-      return;
-    }
-
-    try {
-      setIsResettingPassword(true);
-      await requestPasswordReset(email);
-      safeNotificationAsync(NotificationFeedbackType.Success);
-      showToast('Password reset email sent. Check your inbox.', 'success');
-    } catch {
-      safeNotificationAsync(NotificationFeedbackType.Error);
-      showToast('Could not send reset email. Try again.', 'error');
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
+  const handleForgotPassword = () => router.push(ROUTES.AUTH.FORGOT_PASSWORD);
 
   return (
     <View style={styles.container}>
@@ -200,10 +169,10 @@ export default function LoginScreen() {
               <Pressable
                 style={styles.forgotButton}
                 onPress={handleForgotPassword}
-                disabled={isLoading || isResettingPassword}
+                disabled={isLoading}
               >
-                <Text style={[styles.forgotText, !isLoading && !isResettingPassword && styles.forgotTextActive]}>
-                  {isResettingPassword ? 'Sending reset email...' : 'Forgot password?'}
+                <Text style={[styles.forgotText, !isLoading && styles.forgotTextActive]}>
+                  Forgot password?
                 </Text>
               </Pressable>
             </Animated.View>

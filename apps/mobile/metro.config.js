@@ -16,8 +16,8 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
-// 3. Force Metro to resolve (sub)dependencies only from the `nodeModulesPaths`
-config.resolver.disableHierarchicalLookup = true;
+// 3. Keep hierarchical lookup at Expo's default for SDK compatibility checks.
+config.resolver.disableHierarchicalLookup = false;
 config.resolver.unstable_enablePackageExports = false;
 // 4. Prefer Zustand's React Native/CommonJS entry on web too. The ESM build
 // leaves import.meta.env in Metro's classic dev bundle, which breaks browsers.

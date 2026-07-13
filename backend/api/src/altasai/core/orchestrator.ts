@@ -3,6 +3,7 @@ import { buildMentorPlan } from '../pipelines/mentorPlanner';
 import { generateReportInsight } from '../pipelines/reportInsightGenerator';
 import type { AltasAIContext, InternalAIResult, MentorResponsePlan } from './types';
 import { generateGeminiText, parseJsonWithSchema } from '../../services/gemini';
+import { buildClientContextBlock, buildContextTypePreamble, buildDisciplineInstruction, systemBase } from '../../services/prompts';
 import { buildFeatures, buildUserStateVector } from '../feature-store/featureBuilder';
 import { classifyIntent } from '../nlp/intentClassifier';
 import { extractEntities } from '../nlp/entityExtractor';
@@ -20,6 +21,7 @@ import { detectAnomalies } from '../models/anomalyDetectionModel';
 import { generateCortexInsight } from '../models/cortexInsightEngine';
 import { runSafetyGuardrail } from '../models/safetyGuardrailModel';
 import { mlServiceClient } from '../clients/mlServiceClient';
+import { isProjectScopedInput, OUT_OF_CONTEXT_RESPONSE } from '../../services/projectScope';
 
 const enhancedMentorSchema = z.object({
   response: z.string().min(1).max(2400),
@@ -136,25 +138,81 @@ export const runAltasAIOrchestratorWithML = async (context: AltasAIContext) => {
   };
 };
 
-const buildEnhancementPrompt = (message: string, plan: MentorResponsePlan): string => `
-You are only improving wording for an AltasAI internal mentor plan.
-Do not change the diagnosis, recommendations, priority, or safety constraints.
+const buildConversationBlock = (history: AltasAIContext['conversationHistory']): string => {
+  if (!history?.length) return '';
+  const turns = history
+    .map((t) => `${t.role === 'user' ? 'User' : 'ATLAS'}: ${t.content}`)
+    .join('\n');
+  return `CONVERSATION HISTORY (most recent ${history.length} turns):\n${turns}`;
+};
+
+const buildEnhancementPrompt = (context: AltasAIContext, plan: MentorResponsePlan): string => {
+  const disciplineVoice = buildDisciplineInstruction(context.memory?.profile?.disciplineLevel as string | undefined);
+  const contextPreamble = buildContextTypePreamble(context.contextType);
+  const clientBlock = buildClientContextBlock(context.clientContext);
+  const historyBlock = buildConversationBlock(context.conversationHistory);
+
+  return `
+The internal AltasAI plan below is authoritative. Your only job is to write the mentor response text.
+Do NOT change the diagnosis, recommendations, priority, or safety constraints.
+Max 180 words.
+
+${disciplineVoice}
+${contextPreamble ? `\nSession context: ${contextPreamble}` : ''}
+${clientBlock ? `\n${clientBlock}` : ''}
+${historyBlock ? `\n${historyBlock}` : ''}
 
 User message:
-${message}
+${context.message}
 
 Internal plan:
-${JSON.stringify(plan).slice(0, 7000)}
+${JSON.stringify(plan).slice(0, 6400)}
 
 Return only:
-{"response":"clear mentor response using the internal plan","tone":"strict","nextActions":[""]}
-`;
+{"response":"ATLAS mentor response that is aware of the conversation history and grounded in the plan","tone":"strict","nextActions":["concrete action 1","concrete action 2"]}
+`.trim();
+};
 
 export const runMentorOrchestration = async (
   context: AltasAIContext,
-  options: { enhanceWithGemini?: boolean } = {}
+  options: { enhanceWithGemini?: boolean; useML?: boolean } = {}
 ): Promise<MentorOrchestrationResult> => {
-  const orchestration = runAltasAIOrchestrator(context);
+  if (!isProjectScopedInput(context.message)) {
+    return {
+      plan: {
+        intent: { label: 'unknown', confidence: 1, reasons: [OUT_OF_CONTEXT_RESPONSE] },
+        entities: [],
+        patterns: [],
+        recommendations: [],
+        userState: OUT_OF_CONTEXT_RESPONSE,
+        adviceType: 'support',
+        safetyConstraints: ['Only answer within the AltasAI project domain.'],
+        responseStructure: ['refusal'],
+        fallbackResponse: OUT_OF_CONTEXT_RESPONSE,
+      },
+      response: OUT_OF_CONTEXT_RESPONSE,
+      tone: 'strict',
+      nextActions: [],
+      provider: 'internal',
+      offline: true,
+    };
+  }
+
+  // Use ML-enhanced orchestration for the mentor (better intent + personalized recommendation)
+  const mlResult = options.useML !== false ? await runAltasAIOrchestratorWithML(context) : null;
+  const orchestration = mlResult ?? runAltasAIOrchestrator(context);
+
+  // If ML provided a better intent, use it
+  if (mlResult?.mlService?.intent && mlResult.mlService.used) {
+    const mlIntent = mlResult.mlService.intent as { label?: string; confidence?: number };
+    if (mlIntent.label && mlIntent.label !== 'unknown') {
+      orchestration.intent = {
+        label: mlIntent.label as typeof orchestration.intent.label,
+        confidence: mlIntent.confidence ?? orchestration.intent.confidence,
+        reasons: orchestration.intent.reasons,
+      };
+    }
+  }
   const plan = buildMentorPlan(context, orchestration);
   const internal = {
     response: plan.fallbackResponse,
@@ -167,18 +225,14 @@ export const runMentorOrchestration = async (
   }
 
   const model = await generateGeminiText({
-    systemInstruction: [
-      'You are AltasAI wording enhancer.',
-      'The internal AltasAI plan is authoritative.',
-      'Return valid JSON only.',
-    ].join('\n'),
-    prompt: buildEnhancementPrompt(context.message, plan),
+    systemInstruction: systemBase,
+    prompt: buildEnhancementPrompt(context, plan),
     maxOutputTokens: 650,
     temperature: 0.35,
   });
 
   if (model.offline) {
-    return { plan, ...internal, provider: 'internal', offline: false };
+    return { plan, ...internal, provider: 'internal', offline: true };
   }
 
   const parsed = parseJsonWithSchema(model.text, enhancedMentorSchema, internal);

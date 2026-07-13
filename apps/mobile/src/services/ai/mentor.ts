@@ -1,10 +1,28 @@
 import { getErrorMessage } from '../../utils/errors';
-import { callBackend } from './backendClient';
+import { BackendApiError, callBackend } from './backendClient';
+
+import type { MentorAction } from '../../features/mentor/types';
+
+interface ClientContext {
+  pendingTasks: number;
+  completedTasks: number;
+  completionRate: number;
+  activeGoalCount: number;
+  topGoalTitle?: string;
+  topGoalProgress?: number;
+  disciplineLevel?: 'mentor' | 'strict' | 'ruthless';
+  focusAreas?: string[];
+  currentScores?: { discipline: number; productivity: number; consistency: number };
+  lifeRhythm?: { wakeTime?: string; sleepTime?: string; timezone?: string };
+}
 
 interface ChatResponse {
   response: string;
   conversationId: string;
   offline?: boolean;
+  actions?: MentorAction[];
+  nextActions?: string[];
+  clientContext?: ClientContext;
 }
 
 interface GoalBreakdownResponse {
@@ -14,6 +32,9 @@ interface GoalBreakdownResponse {
 interface ReflectionFeedbackResponse {
   feedback: string;
 }
+
+const REFLECTION_FALLBACK =
+  'Reflection saved. AltasAI feedback is offline right now; choose one concrete action for tomorrow and keep the loop moving.';
 
 const OFFLINE_RESPONSE = [
   'AltasAI Mentor is temporarily offline.',
@@ -36,13 +57,15 @@ const OFFLINE_RESPONSE = [
 export const chatWithMentor = async (
   message: string,
   conversationId?: string,
-  contextType?: 'general' | 'morning' | 'task_review' | 'reflection'
+  contextType?: 'general' | 'morning' | 'task_review' | 'reflection',
+  clientContext?: ChatResponse['clientContext']
 ): Promise<ChatResponse> => {
   try {
-    const result = await callBackend<{ response: string; conversationId: string; offline?: boolean }>('/api/mentor', {
+    const result = await callBackend<ChatResponse>('/api/mentor', {
       message,
       conversationId,
       contextType,
+      clientContext,
     });
 
     if (result?.response) {
@@ -50,10 +73,18 @@ export const chatWithMentor = async (
         response: result.response,
         conversationId: result.conversationId,
         offline: Boolean(result.offline),
+        actions: result.actions,
+        nextActions: result.nextActions,
+        clientContext,
       };
     }
   } catch (error) {
-    if (__DEV__) console.warn('[AI] AltasAI backend mentor endpoint unavailable:', getErrorMessage(error));
+    if (error instanceof BackendApiError && error.status && error.status < 500 && error.status !== 408) {
+      throw error;
+    }
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn('[AI] AltasAI backend mentor endpoint unavailable:', getErrorMessage(error));
+    }
   }
 
   return {
@@ -100,7 +131,24 @@ const buildLocalGoalBreakdown = (goalTitle: string, goalDescription?: string): s
 export const generateReflectionFeedback = async (
   date: string
 ): Promise<string> => {
-  const result = await callBackend<ReflectionFeedbackResponse>('/api/reflection-feedback', { date });
+  try {
+    const result = await callBackend<ReflectionFeedbackResponse>('/api/reflection-feedback', { date });
+    return result.feedback || REFLECTION_FALLBACK;
+  } catch (error) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn('[AI] Reflection feedback backend unavailable:', getErrorMessage(error));
+    }
+    return REFLECTION_FALLBACK;
+  }
+};
 
-  return result.feedback;
+export const recordMentorReward = async (
+  action: string,
+  reward: number
+): Promise<void> => {
+  try {
+    await callBackend('/api/reward', { action, reward });
+  } catch {
+    // Fire-and-forget: reward recording never blocks the UI.
+  }
 };

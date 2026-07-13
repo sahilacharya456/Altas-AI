@@ -6,12 +6,50 @@
 import {
     getDocument,
     setDocument,
-    updateDocument,
     subscribeToDocument,
+    Timestamp,
 } from '../firebase';
 import { UserProfile } from '../../types/firestore';
 
 const PROFILE_PATH = 'profile/data';
+
+const DEFAULT_LIFE_RHYTHM: UserProfile['lifeRhythm'] = {
+    wakeTime: '06:00',
+    sleepTime: '22:00',
+};
+
+const DEFAULT_SCORES: UserProfile['currentScores'] = {
+    discipline: 50,
+    productivity: 50,
+    consistency: 50,
+};
+
+export type ProfileUpdateInput = Partial<Omit<UserProfile, 'lifeRhythm' | 'currentScores'>> & {
+    lifeRhythm?: Partial<UserProfile['lifeRhythm']>;
+    currentScores?: Partial<UserProfile['currentScores']>;
+};
+
+export const buildProfileUpdatePayload = (
+    current: UserProfile | null,
+    data: ProfileUpdateInput
+): Omit<UserProfile, 'id' | 'updatedAt'> => ({
+    email: data.email ?? current?.email ?? '',
+    displayName: data.displayName?.trim() || current?.displayName || 'Commander',
+    createdAt: data.createdAt ?? current?.createdAt ?? Timestamp.now(),
+    disciplineLevel: data.disciplineLevel ?? current?.disciplineLevel ?? 'strict',
+    focusAreas: data.focusAreas ?? current?.focusAreas ?? [],
+    lifeRhythm: {
+        ...DEFAULT_LIFE_RHYTHM,
+        ...current?.lifeRhythm,
+        ...data.lifeRhythm,
+    },
+    currentScores: {
+        ...DEFAULT_SCORES,
+        ...current?.currentScores,
+        ...data.currentScores,
+    },
+    onboardingCompleted: data.onboardingCompleted ?? current?.onboardingCompleted ?? false,
+});
 
 /**
  * Get user profile
@@ -24,9 +62,20 @@ export const getProfile = async (): Promise<UserProfile | null> => {
  * Update user profile
  */
 export const updateProfile = async (
-    data: Partial<UserProfile>
+    data: ProfileUpdateInput
 ): Promise<void> => {
-    return updateDocument(PROFILE_PATH, data);
+    let current: UserProfile | null = null;
+    try {
+        current = await getProfile();
+    } catch {
+        current = null;
+    }
+
+    return setDocument<UserProfile>(
+        PROFILE_PATH,
+        buildProfileUpdatePayload(current, data),
+        true
+    );
 };
 
 /**
@@ -47,7 +96,7 @@ export const completeOnboarding = async (
 export const updateDisciplineLevel = async (
     level: UserProfile['disciplineLevel']
 ): Promise<void> => {
-    return updateDocument(PROFILE_PATH, { disciplineLevel: level });
+    return updateProfile({ disciplineLevel: level });
 };
 
 /**
@@ -59,7 +108,7 @@ export const updateScores = async (
     const profile = await getProfile();
     if (!profile) return;
 
-    return updateDocument(PROFILE_PATH, {
+    return updateProfile({
         currentScores: {
             ...profile.currentScores,
             ...scores,
@@ -76,7 +125,7 @@ export const updateLifeRhythm = async (
     const profile = await getProfile();
     if (!profile) return;
 
-    return updateDocument(PROFILE_PATH, {
+    return updateProfile({
         lifeRhythm: {
             ...profile.lifeRhythm,
             ...lifeRhythm,

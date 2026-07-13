@@ -23,6 +23,9 @@ import { NotificationService } from '../services/notifications';
 import { getErrorMessage } from '../utils/errors';
 import { convertToDate } from '../utils/dateUtils';
 import { validateTask } from '../utils/validation';
+import { recordMentorReward } from '../services/ai/mentor';
+import { buildTaskSummary, type TaskSummary } from '../utils/taskSummary';
+import { buildLocalTaskFallback, isTaskCreateLocalFallbackError } from '../utils/taskFallback';
 
 interface TasksState {
     // State
@@ -30,13 +33,7 @@ interface TasksState {
     tasks: Task[];
     carriedTasks: Task[];
     selectedDate: Date;
-    summary: {
-        total: number;
-        completed: number;
-        pending: number;
-        carried: number;
-        completionRate: number;
-    };
+    summary: TaskSummary;
     isLoading: boolean;
     error: string | null;
 
@@ -83,20 +80,8 @@ export const useTasksStore = create<TasksState>((set, get) => ({
             (tasks) => {
                 set({ tasks, isLoading: false, error: null });
 
-                // Update summary
-                const completed = tasks.filter(t => t.status === 'completed').length;
-                const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
-                const carried = tasks.filter(t => t.status === 'carried').length;
-                const total = tasks.length;
-
                 set({
-                    summary: {
-                        total,
-                        completed,
-                        pending,
-                        carried,
-                        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-                    },
+                    summary: buildTaskSummary(tasks),
                 });
             },
             (error) => {
@@ -182,57 +167,18 @@ export const useTasksStore = create<TasksState>((set, get) => ({
             return taskId;
         } catch (error) {
             const message = getErrorMessage(error, 'Failed to create task');
-            const isCloudBlocked =
-                error instanceof Error &&
-                (error.message.includes('Missing or insufficient permissions') ||
-                    error.message.toLowerCase().includes('network'));
-
-            if (isCloudBlocked) {
-                const scheduledDate = Timestamp.fromDate(
-                    taskData.scheduledDate instanceof Date
-                        ? taskData.scheduledDate
-                        : (taskData.scheduledDate as any).toDate()
-                );
-                const now = Timestamp.now();
-                const localTaskId = `local_${Date.now()}`;
-                const localTask: Task = {
-                    id: localTaskId,
-                    userId: taskData.userId,
-                    title: taskData.title,
-                    description: taskData.description ?? '',
-                    category: taskData.category,
-                    priority: taskData.priority,
-                    status: taskData.status ?? 'pending',
-                    estimatedMinutes: taskData.estimatedMinutes,
-                    scheduledDate,
-                    tags: taskData.tags ?? [],
-                    isCarried: false,
-                    carryCount: 0,
-                    createdAt: now,
-                    updatedAt: now,
-                    source: taskData.source ?? 'manual',
-                    context: taskData.context,
-                    goalId: taskData.goalId,
-                };
+            if (isTaskCreateLocalFallbackError(error)) {
+                const localTask = buildLocalTaskFallback(taskData);
+                const localTaskId = localTask.id ?? `local_${Date.now()}`;
 
                 set((state) => {
                     const tasks = [localTask, ...state.tasks];
-                    const completed = tasks.filter(t => t.status === 'completed').length;
-                    const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
-                    const carried = tasks.filter(t => t.status === 'carried').length;
-                    const total = tasks.length;
 
                     return {
                         tasks,
                         isLoading: false,
                         error: `${message} Mission saved locally for this session.`,
-                        summary: {
-                            total,
-                            completed,
-                            pending,
-                            carried,
-                            completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-                        },
+                        summary: buildTaskSummary(tasks),
                     };
                 });
 
@@ -308,6 +254,9 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         try {
             await completeTask(taskId, actualMinutes);
             NotificationService.cancelTaskReminder(taskId);
+            // Task completed: positive reward signal for mentor_plan and start_focus policies.
+            void recordMentorReward('mentor_plan', 1.0);
+            void recordMentorReward('start_focus', 0.7);
         } catch (error) {
             set({ tasks: prevTasks, error: error instanceof Error ? error.message : 'Failed to complete task' });
             throw error;
@@ -354,6 +303,8 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         try {
             await carryTask(taskId, newDate);
             await get().loadCarriedTasks();
+            // Task carried: negative reward signal for reschedule_task.
+            void recordMentorReward('reschedule_task', -0.3);
         } catch (error) {
             set({ tasks: prevTasks, error: error instanceof Error ? error.message : 'Failed to carry task' });
             throw error;

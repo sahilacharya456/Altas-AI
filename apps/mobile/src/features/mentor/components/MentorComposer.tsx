@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ALTASAI_COLORS } from '../../../theme/colors';
 import { styles } from './mentorStyles';
@@ -39,7 +40,12 @@ export function MentorComposer({ message, isDisabled, onChangeMessage, onSend }:
             canSend && styles.sendButtonActive,
           ]}
         >
-          <Text style={styles.sendIcon}>^</Text>
+          <Ionicons
+            name="arrow-up"
+            size={20}
+            color="#FFFFFF"
+            accessibilityLabel="Send"
+          />
         </Pressable>
       </View>
     </View>

@@ -1,8 +1,8 @@
 {
   "test-user": {
     "break_task": {
-      "count": 8,
-      "totalReward": 8.0,
+      "count": 11,
+      "totalReward": 11.0,
       "averageReward": 1.0
     },
     "reduce_workload": {
@@ -11,14 +11,21 @@
       "averageReward": 1.0
     },
     "start_focus": {
-      "count": 5,
-      "totalReward": 5.0,
+      "count": 8,
+      "totalReward": 8.0,
       "averageReward": 1.0
     },
     "write_reflection": {
       "count": 1,
       "totalReward": 1.0,
       "averageReward": 1.0
+    }
+  },
+  "test_user_123": {
+    "mentor_plan": {
+      "count": 2,
+      "totalReward": 1.8,
+      "averageReward": 0.9
     }
   }
 }

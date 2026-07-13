@@ -216,12 +216,19 @@ export default function HomeScreen() {
         />
       </Animated.View>
 
-      <Animated.View entering={altasaiCardEntrance(8)}>
+      <Animated.View entering={altasaiCardEntrance(8)} style={{ gap: 10 }}>
+        <GradientButton
+          title="Submit Proof of Work"
+          onPress={() => handleNavigation(routes.PROOF)}
+          size="lg"
+          fullWidth
+        />
         <GradientButton
           title="Start Focus Session"
           onPress={() => handleNavigation(routes.TASKS)}
           size="lg"
           fullWidth
+          variant="secondary"
         />
       </Animated.View>
 

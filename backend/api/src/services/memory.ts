@@ -1,5 +1,19 @@
 import { db, Timestamp } from '../lib/firebaseAdmin';
 import { logger } from '../utils/logger';
+import { mlServiceClient } from '../altasai/clients/mlServiceClient';
+
+export interface ReflectionAnalysis {
+  sentimentScore: number;
+  emotionLabels: string[];
+  stressScore: number;
+  motivationScore: number;
+  confidenceScore: number;
+  burnoutRiskSignal: number;
+  blockers: string[];
+  wins: string[];
+  themes: string[];
+  recommendedIntervention: string;
+}
 
 export interface SafeUserMemory {
   profile: {
@@ -17,6 +31,8 @@ export interface SafeUserMemory {
   securityEvents: Array<Record<string, unknown>>;
   cortexRisk: Record<string, unknown> | null;
   behaviorEvents: Array<Record<string, unknown>>;
+  ragContext?: string;
+  reflectionAnalysis?: ReflectionAnalysis;
 }
 
 const compactDoc = (data: Record<string, unknown>): Record<string, unknown> => {
@@ -82,21 +98,74 @@ export const retrieveSafeMemory = async (userId: string): Promise<SafeUserMemory
 
   const profileData = profileDoc && 'exists' in profileDoc && profileDoc.exists ? profileDoc.data() : null;
 
+  const tasks = tasksSnapshot ? tasksSnapshot.docs.map((doc) => compactDoc(doc.data())) : [];
+  const goals = goalsSnapshot ? goalsSnapshot.docs.map((doc) => compactDoc(doc.data())) : [];
+  const reflections = logsSnapshot ? logsSnapshot.docs.map((doc) => compactDoc(doc.data())) : [];
+  const behaviorEvents = eventsSnapshot ? eventsSnapshot.docs.map((doc) => compactDoc(doc.data())) : [];
+
+  // Build reflection text for ML analysis
+  const reflectionText = reflections
+    .map((r) => [r.notes, r.wins, r.wentWell, r.wentWrong, r.missedReason].filter(Boolean).join(' '))
+    .join(' ')
+    .trim()
+    .slice(0, 3000);
+
+  // Run ML reflection analysis + RAG index+query in parallel (non-blocking)
+  const [reflectionAnalysis, ragContext] = await Promise.all([
+    reflectionText
+      ? mlServiceClient.analyzeReflection(reflectionText)
+          .then((r) => r.ok ? r.data : undefined)
+          .catch(() => undefined)
+      : Promise.resolve(undefined),
+
+    (async () => {
+      // Index user's memory into their personal RAG store
+      const ragDocuments = [
+        ...reflections.map((r, i) => ({
+          id: `reflection-${i}`,
+          text: [r.notes, r.wins, r.wentWell, r.wentWrong, r.missedReason].filter(Boolean).join(' '),
+          metadata: { type: 'reflection', date: String(r.date ?? '') },
+        })),
+        ...goals.map((g, i) => ({
+          id: `goal-${i}`,
+          text: `${String(g.title ?? '')} ${String(g.description ?? '')}`.trim(),
+          metadata: { type: 'goal', progress: Number(g.progress ?? 0) },
+        })),
+        ...behaviorEvents.map((b, i) => ({
+          id: `event-${i}`,
+          text: `${String(b.title ?? '')} ${String(b.message ?? '')}`.trim(),
+          metadata: { type: 'behavior', eventType: String(b.eventType ?? '') },
+        })),
+      ].filter((doc) => doc.text.length > 10);
+
+      if (ragDocuments.length > 0) {
+        await mlServiceClient.indexUserMemory(userId, ragDocuments).catch(() => null);
+      }
+
+      // Query RAG with a general context summary — result used as memory for the AI prompt
+      const ragResult = await mlServiceClient.queryRagForUser(userId, 'execution patterns goals productivity blockers', 4)
+        .catch(() => null);
+      return ragResult?.ok && ragResult.data?.hasResults ? ragResult.data.contextForMentor : undefined;
+    })(),
+  ]);
+
   return {
     profile: profileData ? {
       displayName: profileData.displayName,
       disciplineLevel: profileData.disciplineLevel,
       scores: profileData.currentScores,
     } : null,
-    tasks: tasksSnapshot ? tasksSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
-    goals: goalsSnapshot ? goalsSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
-    reflections: logsSnapshot ? logsSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
+    tasks,
+    goals,
+    reflections,
     focusSessions: focusSnapshot ? focusSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
     expenses: expensesSnapshot ? expensesSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
     healthLogs: healthSnapshot ? healthSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
     digitalUsage: digitalSnapshot ? digitalSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
     securityEvents: securitySnapshot ? securitySnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
     cortexRisk: cortexDoc && 'exists' in cortexDoc && cortexDoc.exists ? compactDoc(cortexDoc.data() ?? {}) : null,
-    behaviorEvents: eventsSnapshot ? eventsSnapshot.docs.map((doc) => compactDoc(doc.data())) : [],
+    behaviorEvents,
+    ragContext,
+    reflectionAnalysis,
   };
 };

@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
-// Firebase configuration — validated from environment
+// Firebase configuration validated from environment.
 const hasFirebaseEnv = Boolean(
     process.env.EXPO_PUBLIC_FIREBASE_API_KEY &&
     process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID

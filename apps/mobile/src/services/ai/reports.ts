@@ -96,7 +96,7 @@ export const generateDailyReport = async (): Promise<AltasAIReport | null> => {
     const report: Omit<AltasAIReport, 'id'> = {
       userId: '',
       type: 'daily',
-      title: `Daily Briefing — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+      title: `Daily Briefing - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       summary: result.output?.topPriority ?? result.internalInsight?.summary ?? 'Daily briefing generated.',
       periodStart: now,
       periodEnd: now,
@@ -112,7 +112,7 @@ export const generateDailyReport = async (): Promise<AltasAIReport | null> => {
       nextPlan: [result.output?.suggestedAction ?? 'Complete one task before noon'],
       sections: [
         { title: 'Top Priority', body: result.output?.topPriority ?? 'Generate more data.' },
-        { title: 'Risk Assessment', body: `Execution risk: ${result.output?.executionRisk ?? 0}% — ${result.output?.reason ?? 'Minimal signal.'}` },
+        { title: 'Risk Assessment', body: `Execution risk: ${result.output?.executionRisk ?? 0}% - ${result.output?.reason ?? 'Minimal signal.'}` },
         { title: 'Suggested Action', body: result.output?.suggestedAction ?? 'Start one task.' },
       ],
       aiGenerated: !result.offline,
@@ -143,7 +143,7 @@ export const generateStoredWeeklyReport = async (input?: string): Promise<AltasA
     const report: Omit<AltasAIReport, 'id'> = {
       userId: '',
       type: 'weekly',
-      title: `Weekly Report — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+      title: `Weekly Report - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       summary: result.output?.summary ?? result.internalInsight?.summary ?? 'Weekly report generated.',
       periodStart: weekAgo,
       periodEnd: now,
@@ -186,7 +186,7 @@ export const generateMonthlyReportPlaceholder = async (): Promise<AltasAIReport 
     const report: Omit<AltasAIReport, 'id'> = {
       userId: '',
       type: 'monthly',
-      title: `Monthly Report — ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+      title: `Monthly Report - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
       summary: 'Monthly report structure prepared. More data needed for full analysis.',
       periodStart: monthAgo,
       periodEnd: now,

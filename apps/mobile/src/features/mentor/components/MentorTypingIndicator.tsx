@@ -11,7 +11,11 @@ import Animated, {
 
 import { styles } from './mentorStyles';
 
-export function MentorTypingIndicator() {
+interface MentorTypingIndicatorProps {
+  label?: string;
+}
+
+export function MentorTypingIndicator({ label = 'AltasAI is analyzing' }: MentorTypingIndicatorProps) {
   const shimmer = useSharedValue(0);
 
   useEffect(() => {
@@ -31,7 +35,7 @@ export function MentorTypingIndicator() {
     <Animated.View entering={FadeIn.duration(240)} style={styles.typingContainer}>
       <View style={styles.typingBubble}>
         <Animated.View style={[styles.typingBar, barStyle]} />
-        <Text style={styles.typingText}>AltasAI is analyzing</Text>
+        <Text style={styles.typingText}>{label}</Text>
       </View>
     </Animated.View>
   );

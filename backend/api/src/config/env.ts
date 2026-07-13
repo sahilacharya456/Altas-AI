@@ -4,7 +4,7 @@ import { z } from 'zod';
 dotenv.config();
 
 const parseOrigins = (value?: string): string[] =>
-  (value ?? 'http://localhost:8081,http://127.0.0.1:8081')
+  (value ?? 'http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -15,7 +15,12 @@ const parseBoolean = (value?: string): boolean =>
 const envSchema = z.object({
   port: z.coerce.number().int().min(1).max(65535).default(3001),
   nodeEnv: z.enum(['development', 'test', 'production']).default('development'),
-  allowedOrigins: z.array(z.string().min(1)).default(['http://localhost:8081', 'http://127.0.0.1:8081']),
+  allowedOrigins: z.array(z.string().min(1)).default([
+    'http://localhost:8081',
+    'http://127.0.0.1:8081',
+    'http://localhost:8082',
+    'http://127.0.0.1:8082',
+  ]),
   firebaseProjectId: z.string().min(1).default('altasai'),
   firebaseServiceAccountJson: z.string().optional(),
   geminiApiKey: z.string().optional(),

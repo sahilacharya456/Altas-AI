@@ -1,11 +1,15 @@
+import { getTraceId } from '../middleware/traceContext';
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const write = (level: LogLevel, message: string, meta: Record<string, unknown> = {}) => {
+  const traceId = getTraceId();
   const entry = {
     level,
     message,
     service: 'altasai-backend',
     timestamp: new Date().toISOString(),
+    ...(traceId ? { traceId } : {}),
     ...meta,
   };
   const line = JSON.stringify(entry);
@@ -20,3 +24,4 @@ export const logger = {
   warn: (message: string, meta?: Record<string, unknown>) => write('warn', message, meta),
   error: (message: string, meta?: Record<string, unknown>) => write('error', message, meta),
 };
+

@@ -80,10 +80,17 @@ export class MlServiceClient {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
+    // Propagate trace ID so distributed logs can be correlated across services
+    const { getTraceId } = await import('../../middleware/traceContext');
+    const traceId = getTraceId();
+    const headers: Record<string, string> = {};
+    if (body) headers['Content-Type'] = 'application/json';
+    if (traceId) headers['x-trace-id'] = traceId;
+
     try {
       const response = await fetch(`${this.baseUrl}${safePath(path)}`, {
         method,
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        headers: Object.keys(headers).length ? headers : undefined,
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });

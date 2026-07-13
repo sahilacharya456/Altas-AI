@@ -9,6 +9,7 @@ from app.rag.rag_pipeline import (
     query_rag,
     query_rag_for_user,
 )
+from app.rag.vector_store import get_store_backend
 
 router = APIRouter(prefix="/rag")
 
@@ -33,6 +34,21 @@ class RagQueryUserRequest(BaseModel):
     topK: int = 3
 
 
+@router.get("/backend-info")
+def backend_info() -> dict:
+    """Return which vector store backend is currently active."""
+    backend = get_store_backend()
+    return {
+        "backend": backend,
+        "chromaEnabled": backend == "chroma",
+        "description": (
+            "ChromaDB semantic vector search (sentence-transformers)"
+            if backend == "chroma"
+            else "In-memory TF-IDF (fallback — start ChromaDB and set USE_CHROMA=true to upgrade)"
+        ),
+    }
+
+
 @router.post("/index")
 def index(request: RagIndexRequest) -> dict:
     return index_documents(request.documents)
@@ -51,3 +67,4 @@ def query(request: RagQueryRequest) -> dict:
 @router.post("/query/user")
 def query_user(request: RagQueryUserRequest) -> dict:
     return query_rag_for_user(request.userId, request.query, request.topK)
+

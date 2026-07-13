@@ -8,6 +8,7 @@ import { aiRouter } from './routes/ai.routes';
 import { proofFeedRouter } from './routes/proofFeed.routes';
 import { requestId } from './middleware/requestId';
 import { requestLogger } from './middleware/requestLogger';
+import { traceContext } from './middleware/traceContext';
 import { requireAdminAccess } from './middleware/adminAccess';
 import { requireAppCheck } from './middleware/appCheck';
 import { mlServiceClient } from './altasai/clients/mlServiceClient';
@@ -35,6 +36,7 @@ const isAllowedCorsOrigin = (origin?: string): boolean => {
 
 app.set('trust proxy', 1);
 app.use(requestId);
+app.use(traceContext);
 app.use(requestLogger);
 app.use(helmet());
 

@@ -30,9 +30,9 @@ class InMemoryVectorStore:
         if not self.chunks:
             self.vectorizer = None
             self.matrix = None
-            return {"indexed": 0}
+            return {"indexed": 0, "backend": "tfidf"}
         self.vectorizer, self.matrix = build_tfidf([chunk["text"] for chunk in self.chunks])
-        return {"indexed": len(self.chunks)}
+        return {"indexed": len(self.chunks), "backend": "tfidf"}
 
     def query(self, query: str, top_k: int = 3) -> list[dict[str, Any]]:
         if self.vectorizer is None or self.matrix is None:
@@ -71,6 +71,16 @@ class InMemoryVectorStore:
         return store
 
 
+# ---------------------------------------------------------------------------
+# Store selection helpers — prefer ChromaDB when available
+# ---------------------------------------------------------------------------
+
+def get_store_backend() -> str:
+    """Return active backend name: 'chroma' or 'tfidf'."""
+    from app.rag.chroma_store import is_chroma_available
+    return "chroma" if is_chroma_available() else "tfidf"
+
+
 # Global fallback store (used when no userId is provided)
 VECTOR_STORE = InMemoryVectorStore()
 
@@ -86,6 +96,12 @@ def get_user_store(user_id: str) -> InMemoryVectorStore:
 
 
 def index_for_user(user_id: str, documents: list[dict[str, Any]]) -> dict[str, Any]:
+    from app.rag.chroma_store import ChromaVectorStore, is_chroma_available
+    if is_chroma_available():
+        result = ChromaVectorStore(user_id).index(documents)
+        result["userId"] = user_id
+        return result
+
     store = get_user_store(user_id)
     result = store.index(documents)
     # Persist to disk so the store survives restarts
@@ -96,7 +112,15 @@ def index_for_user(user_id: str, documents: list[dict[str, Any]]) -> dict[str, A
 
 
 def query_for_user(user_id: str, query: str, top_k: int = 3) -> list[dict[str, Any]]:
-    store = get_user_store(user_id)
-    if store.is_empty():
+    from app.rag.chroma_store import ChromaVectorStore, is_chroma_available
+    if is_chroma_available():
+        store = ChromaVectorStore(user_id)
+        results = store.query(query, top_k)
+        if results:
+            return results
+        # Fall through to TF-IDF if chroma collection is empty
+    store_tfidf = get_user_store(user_id)
+    if store_tfidf.is_empty():
         return VECTOR_STORE.query(query, top_k)
-    return store.query(query, top_k)
+    return store_tfidf.query(query, top_k)
+

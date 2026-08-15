@@ -1,83 +1,116 @@
 /**
  * Firebase configuration for AltasAI.
  *
- * Values are loaded from EXPO_PUBLIC_* variables so the same app can run on
- * native and web without committing environment-specific config.
+ * Uses EXPO_PUBLIC_* environment variables so config stays platform-agnostic.
+ * On native, auth is persisted via expo-secure-store (see persistence.ts).
+ * On web, standard browserLocalPersistence is used.
  */
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, initializeAuth, browserLocalPersistence, inMemoryPersistence } from 'firebase/auth';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import {
-    initializeFirestore,
-    getFirestore,
-    Firestore,
-    persistentLocalCache,
-    persistentMultipleTabManager,
-    memoryLocalCache,
+  getAuth,
+  type Auth,
+  initializeAuth,
+  browserLocalPersistence,
+  inMemoryPersistence,
+} from 'firebase/auth';
+import {
+  initializeFirestore,
+  getFirestore,
+  type Firestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  memoryLocalCache,
 } from 'firebase/firestore';
 import { Platform } from 'react-native';
+import { secureStoreAsyncStorage } from './persistence';
 
-// Firebase configuration validated from environment.
+// ---------------------------------------------------------------------------
+// Environment validation
+// ---------------------------------------------------------------------------
+
 const hasFirebaseEnv = Boolean(
-    process.env.EXPO_PUBLIC_FIREBASE_API_KEY &&
-    process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID
+  process.env.EXPO_PUBLIC_FIREBASE_API_KEY &&
+  process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID
 );
 
-const firebaseConfig = hasFirebaseEnv ? {
-    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-} : {
-    apiKey: 'demo-local-only-api-key',
-    authDomain: 'demo-altasai.firebaseapp.com',
-    projectId: 'demo-altasai',
-    storageBucket: 'demo-altasai.appspot.com',
-    messagingSenderId: '000000000000',
-    appId: '1:000000000000:web:0000000000000000000000',
-};
+const firebaseConfig = hasFirebaseEnv
+  ? {
+      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    }
+  : {
+      apiKey: 'demo-local-only-api-key',
+      authDomain: 'demo-altasai.firebaseapp.com',
+      projectId: 'demo-altasai',
+      storageBucket: 'demo-altasai.appspot.com',
+      messagingSenderId: '000000000000',
+      appId: '1:000000000000:web:0000000000000000000000',
+    };
 
-// Validate required config at startup
 export const isFirebaseConfigured = hasFirebaseEnv;
 export const firebaseConfigWarning = hasFirebaseEnv
-    ? null
-    : '[Firebase] Missing EXPO_PUBLIC_FIREBASE_API_KEY or EXPO_PUBLIC_FIREBASE_PROJECT_ID. Running local UI demo mode. Auth and Firestore writes require apps/mobile/.env.';
+  ? null
+  : '[Firebase] Missing env vars. Running local UI demo mode. Add apps/mobile/.env to enable auth & Firestore.';
 
 if (firebaseConfigWarning && __DEV__) {
-    console.warn(firebaseConfigWarning);
+  console.warn(firebaseConfigWarning);
 }
 
-// Initialize Firebase (singleton pattern)
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// ---------------------------------------------------------------------------
+// App singleton
+// ---------------------------------------------------------------------------
+
+const app: FirebaseApp =
+  getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// ---------------------------------------------------------------------------
+// Auth — secure persistence on native, browser persistence on web
+// ---------------------------------------------------------------------------
 
 let auth: Auth;
 try {
-    auth = initializeAuth(app, {
-        persistence: Platform.OS === 'web' ? browserLocalPersistence : inMemoryPersistence,
-    });
+  /**
+   * On native we pass our SecureStore-backed async storage as the persistence
+   * adapter. Firebase Auth web SDK accepts any object with getItem/setItem/
+   * removeItem (the AsyncStorage interface) when passed via the persistence
+   * option on React Native builds.
+   *
+   * Note: we cast to unknown first because the web SDK's Persistence type
+   * doesn't expose the internal storage-adapter overload in its public types,
+   * but the runtime supports it on React Native targets.
+   */
+  const persistence =
+    Platform.OS === 'web'
+      ? browserLocalPersistence
+      : Platform.OS === 'android' || Platform.OS === 'ios'
+      ? (secureStoreAsyncStorage as unknown as import('firebase/auth').Persistence)
+      : inMemoryPersistence;
+
+  auth = initializeAuth(app, { persistence });
 } catch {
-    // Auth already initialized (hot reload)
-    auth = getAuth(app);
+  // Already initialised (hot reload)
+  auth = getAuth(app);
 }
+
+// ---------------------------------------------------------------------------
+// Firestore — persistent multi-tab cache on web, memory cache on native
+// ---------------------------------------------------------------------------
 
 let db: Firestore;
 try {
-    if (Platform.OS === 'web') {
-        db = initializeFirestore(app, {
-            localCache: persistentLocalCache({
-                tabManager: persistentMultipleTabManager(),
-            }),
-        });
-    } else {
-        db = initializeFirestore(app, {
-            localCache: memoryLocalCache(),
-        });
-    }
+  db = initializeFirestore(
+    app,
+    Platform.OS === 'web'
+      ? { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }
+      : { localCache: memoryLocalCache() }
+  );
 } catch {
-    // Firestore already initialized (hot reload)
-    db = getFirestore(app);
+  db = getFirestore(app);
 }
 
 export { app, auth, db };

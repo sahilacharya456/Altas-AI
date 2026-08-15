@@ -26,6 +26,7 @@ import { validateTask } from '../utils/validation';
 import { recordMentorReward } from '../services/ai/mentor';
 import { buildTaskSummary, type TaskSummary } from '../utils/taskSummary';
 import { buildLocalTaskFallback, isTaskCreateLocalFallbackError } from '../utils/taskFallback';
+import { logger } from '../utils/logger';
 
 interface TasksState {
     // State
@@ -124,7 +125,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
             const carriedTasks = await getCarriedTasks(userId);
             set({ carriedTasks });
         } catch (error) {
-            // Silent fail - carried tasks are not critical
+            logger.warn('Load carried tasks failed', error, 'TasksStore');
         }
     },
 
@@ -142,8 +143,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
 
             set({ isLoading: true, error: null });
 
-            // Convert Date to Timestamp for Firestore if needed (though addDocument handles Date objects usually, 
-            // but for type safety with our interface update):
+            // Convert Date to Timestamp for Firestore if needed
             const dataToSave = {
                 ...taskData,
                 description: taskData.description ?? '',
@@ -304,27 +304,25 @@ export const useTasksStore = create<TasksState>((set, get) => ({
             await carryTask(taskId, newDate);
             await get().loadCarriedTasks();
             // Task carried: negative reward signal for reschedule_task.
-            void recordMentorReward('reschedule_task', -0.3);
+            void recordMentorReward('reschedule_task', -0.5);
         } catch (error) {
             set({ tasks: prevTasks, error: error instanceof Error ? error.message : 'Failed to carry task' });
             throw error;
         }
     },
 
-    // Refresh summary for current date
+    // Refresh summary
     refreshSummary: async () => {
-        const { userId } = get();
+        const { userId, selectedDate } = get();
         if (!userId) return;
-
         try {
-            const summary = await getTaskSummary(userId, get().selectedDate);
+            const summary = await getTaskSummary(userId, selectedDate);
             set({ summary });
         } catch (error) {
-            // Silent fail - summary refresh is not critical
+            logger.warn('Summary refresh failed', error, 'TasksStore');
         }
     },
 
-    // Clear error
     clearError: () => set({ error: null }),
 }));
 

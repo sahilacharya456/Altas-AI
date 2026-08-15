@@ -35,6 +35,13 @@ const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T
   }
 };
 
+const isTransientError = (error: unknown): boolean => {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /429|503|rate.limit|quota|overloaded|unavailable/i.test(msg);
+};
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export const generateGeminiText = async ({
   systemInstruction,
   prompt,
@@ -46,27 +53,39 @@ export const generateGeminiText = async ({
     return { provider: 'offline', text: '', offline: true };
   }
 
-  try {
-    const response = await withTimeout(ai.models.generateContent({
-      model: env.geminiModel,
-      contents: prompt,
-      config: {
-        systemInstruction,
-        maxOutputTokens,
-        temperature,
-        responseMimeType,
-      },
-    }), 18_000);
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await withTimeout(ai.models.generateContent({
+        model: env.geminiModel,
+        contents: prompt,
+        config: {
+          systemInstruction,
+          maxOutputTokens,
+          temperature,
+          responseMimeType,
+        },
+      }), 18_000);
 
-    return {
-      provider: 'gemini',
-      text: response.text?.trim() ?? '',
-      offline: false,
-    };
-  } catch (error) {
-    logger.warn('ai.gemini_failed', { error: error instanceof Error ? error.message : String(error) });
-    return { provider: 'offline', text: '', offline: true };
+      return {
+        provider: 'gemini',
+        text: response.text?.trim() ?? '',
+        offline: false,
+      };
+    } catch (error) {
+      const transient = isTransientError(error);
+      if (transient && attempt < MAX_ATTEMPTS) {
+        const delayMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        logger.warn('ai.gemini_retry', { attempt, delayMs, error: error instanceof Error ? error.message : String(error) });
+        await sleep(delayMs);
+        continue;
+      }
+      logger.warn('ai.gemini_failed', { attempt, error: error instanceof Error ? error.message : String(error) });
+      return { provider: 'offline', text: '', offline: true };
+    }
   }
+
+  return { provider: 'offline', text: '', offline: true };
 };
 
 export const parseJsonFallback = <T>(raw: string, fallback: T): T => {

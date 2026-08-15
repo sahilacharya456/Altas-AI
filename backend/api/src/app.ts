@@ -6,6 +6,7 @@ import { env } from './config/env';
 import { errorHandler } from './lib/http';
 import { aiRouter } from './routes/ai.routes';
 import { proofFeedRouter } from './routes/proofFeed.routes';
+import { recommendationsRouter } from './routes/recommendations.routes';
 import { requestId } from './middleware/requestId';
 import { requestLogger } from './middleware/requestLogger';
 import { traceContext } from './middleware/traceContext';
@@ -15,6 +16,7 @@ import { mlServiceClient } from './altasai/clients/mlServiceClient';
 import { getMetricsSnapshot, getBusinessMetrics, renderAdminStatsHtml, renderPrometheusMetrics } from './services/metrics';
 import { getStripeConfigStatus, handleStripeWebhook, STRIPE_AVAILABLE } from './services/stripe';
 import { grantProAccess, invalidateSubscriptionCache } from './services/subscription';
+import { logger } from './utils/logger';
 
 export const app = express();
 
@@ -34,6 +36,23 @@ const isAllowedCorsOrigin = (origin?: string): boolean => {
   return false;
 };
 
+// Rate limiters
+const healthRateLimit = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'rate_limited', message: 'Too many health check requests. Try again in a minute.' } },
+});
+
+const adminRateLimit = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'rate_limited', message: 'Too many admin requests. Try again in a minute.' } },
+});
+
 app.set('trust proxy', 1);
 app.use(requestId);
 app.use(traceContext);
@@ -43,8 +62,20 @@ app.use(helmet());
 // Stripe webhook needs raw body — mount BEFORE express.json()
 app.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
+  const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+  
   if (!sig || typeof sig !== 'string') {
     res.status(400).json({ error: 'Missing stripe-signature header' });
+    return;
+  }
+
+  // Validate idempotency key for replay protection
+  if (!idempotencyKey || idempotencyKey.length < 16) {
+    logger.warn('stripe.webhook_missing_idempotency_key', { 
+      requestId: req.requestId,
+      hasKey: !!idempotencyKey 
+    });
+    res.status(400).json({ error: 'Missing or invalid idempotency-key header' });
     return;
   }
 
@@ -66,6 +97,11 @@ app.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (re
     res.status(400).json({ error: result.error });
     return;
   }
+  logger.info('stripe.webhook_processed', { 
+    requestId: req.requestId, 
+    idempotencyKey,
+    eventType: result.eventType 
+  });
   res.json({ received: true });
 });
 
@@ -102,7 +138,8 @@ app.use('/api/proof-feed', proofFeedRouter);
 
 app.use('/api', requireAppCheck);
 
-app.get('/health', async (_req, res) => {
+// Health check endpoints with rate limiting
+app.get('/health', healthRateLimit, async (_req, res) => {
   const ml = await mlServiceClient.health();
   res.json({
     ok: true,
@@ -123,7 +160,7 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-app.get('/health/ml', async (_req, res) => {
+app.get('/health/ml', healthRateLimit, async (_req, res) => {
   const ml = await mlServiceClient.health();
   res.status(ml.ok ? 200 : 503).json({
     ok: ml.ok,
@@ -133,19 +170,24 @@ app.get('/health/ml', async (_req, res) => {
   });
 });
 
-app.get('/metrics', requireAdminAccess, (_req, res) => {
+// Admin endpoints with rate limiting and audit logging
+app.get('/metrics', adminRateLimit, requireAdminAccess, (_req, res) => {
+  logger.info('admin.metrics_accessed', { requestId: _req.requestId });
   res.type('text/plain').send(renderPrometheusMetrics());
 });
 
-app.get('/admin/stats', requireAdminAccess, (_req, res) => {
+app.get('/admin/stats', adminRateLimit, requireAdminAccess, (_req, res) => {
+  logger.info('admin.stats_html_accessed', { requestId: _req.requestId });
   res.type('html').send(renderAdminStatsHtml());
 });
 
-app.get('/admin/stats.json', requireAdminAccess, (_req, res) => {
+app.get('/admin/stats.json', adminRateLimit, requireAdminAccess, (_req, res) => {
+  logger.info('admin.stats_json_accessed', { requestId: _req.requestId });
   res.json(getMetricsSnapshot());
 });
 
-app.get('/admin/business-metrics.json', requireAdminAccess, (_req, res) => {
+app.get('/admin/business-metrics.json', adminRateLimit, requireAdminAccess, (_req, res) => {
+  logger.info('admin.business_metrics_accessed', { requestId: _req.requestId });
   res.json({ service: 'altasai-backend', events: getBusinessMetrics() });
 });
 

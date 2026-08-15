@@ -1,6 +1,7 @@
 import { db, Timestamp } from '../lib/firebaseAdmin';
 import { logger } from '../utils/logger';
 import { mlServiceClient } from '../altasai/clients/mlServiceClient';
+import { detectGhostTasks, type GhostTaskSummary } from './ghostTask';
 
 export interface ReflectionAnalysis {
   sentimentScore: number;
@@ -33,6 +34,7 @@ export interface SafeUserMemory {
   behaviorEvents: Array<Record<string, unknown>>;
   ragContext?: string;
   reflectionAnalysis?: ReflectionAnalysis;
+  ghostTasks?: GhostTaskSummary;
 }
 
 const compactDoc = (data: Record<string, unknown>): Record<string, unknown> => {
@@ -110,13 +112,16 @@ export const retrieveSafeMemory = async (userId: string): Promise<SafeUserMemory
     .trim()
     .slice(0, 3000);
 
-  // Run ML reflection analysis + RAG index+query in parallel (non-blocking)
-  const [reflectionAnalysis, ragContext] = await Promise.all([
+  // Run ML reflection analysis + RAG index+query + Ghost Task detection in parallel (non-blocking)
+  const [reflectionAnalysis, ghostTasks, ragContext] = await Promise.all([
     reflectionText
       ? mlServiceClient.analyzeReflection(reflectionText)
           .then((r) => r.ok ? r.data : undefined)
           .catch(() => undefined)
       : Promise.resolve(undefined),
+
+    // Ghost task detection — runs independently of ML service
+    detectGhostTasks(userId).catch(() => undefined),
 
     (async () => {
       // Index user's memory into their personal RAG store
@@ -167,5 +172,6 @@ export const retrieveSafeMemory = async (userId: string): Promise<SafeUserMemory
     behaviorEvents,
     ragContext,
     reflectionAnalysis,
+    ghostTasks,
   };
 };

@@ -15,7 +15,7 @@
  * The app must expose testID attributes on key elements.
  */
 
-import { device, element, by, expect } from 'detox';
+import { device, element, by, expect, waitFor } from 'detox';
 
 describe('AltasAI — Demo Flow Smoke Test', () => {
   beforeAll(async () => {

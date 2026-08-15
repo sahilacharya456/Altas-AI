@@ -27,7 +27,7 @@ const envSchema = z.object({
   geminiModel: z.string().min(1).default('gemini-2.5-flash'),
   aiDailyQuota: z.coerce.number().int().min(1).max(1000).default(60),
   mlServiceBaseUrl: z.string().url().default('http://127.0.0.1:8001'),
-  mlServiceTimeoutMs: z.coerce.number().int().min(500).max(30000).default(3500),
+  mlServiceTimeoutMs: z.coerce.number().int().min(500).max(30000).default(8000),
   requireAppCheck: z.boolean().default(false),
   adminMetricsToken: z.string().min(16).optional(),
 });
@@ -66,7 +66,7 @@ if (isProduction) {
     warnings.push('REQUIRE_APP_CHECK is false — Firebase App Check is not enforced. Set to true before accepting real users.');
   }
   if (!env.adminMetricsToken) {
-    warnings.push('ADMIN_METRICS_TOKEN is not set — /metrics and /admin/stats endpoints are unprotected.');
+    warnings.push('ADMIN_METRICS_TOKEN is not set — /metrics and /admin/stats endpoints are unprotected. Use SHA-256 hash format: "hash1,hash2" for rotation.');
   }
   if (env.allowedOrigins.some(o => o.includes('localhost') || o.includes('127.0.0.1'))) {
     warnings.push('ALLOWED_ORIGINS contains localhost entries — remove these for production.');

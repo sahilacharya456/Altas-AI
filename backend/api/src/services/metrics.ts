@@ -1,4 +1,6 @@
 import type { Request, Response } from 'express';
+import { db, FieldValue } from '../lib/firebaseAdmin';
+import { logger } from '../utils/logger';
 
 // ── Business event counters (in-process, reset on restart — complement Firestore) ──
 const businessCounters = {
@@ -13,13 +15,26 @@ const businessCounters = {
   subscription_check_free: 0,
   subscription_check_pro: 0,
   subscription_check_team: 0,
+  // Extended events
+  daily_briefing_generated: 0,
+  weekly_report_generated: 0,
+  goal_breakdown_generated: 0,
+  reflection_feedback_generated: 0,
+  interventions_generated: 0,
+  cortex_insight_generated: 0,
+  budget_discipline_generated: 0,
+  security_advice_generated: 0,
+  reward_recorded: 0,
+  subscription_checkout_created: 0,
+  subscription_portal_created: 0,
 };
 
 export type BusinessEvent = keyof typeof businessCounters;
 
-export const recordBusinessEvent = (event: BusinessEvent): void => {
+export const recordBusinessEvent = (event: BusinessEvent, _metadata?: Record<string, unknown>): void => {
   businessCounters[event]++;
 };
+
 
 export const getBusinessMetrics = () => ({ ...businessCounters });
 
@@ -95,6 +110,27 @@ export const renderPrometheusMetrics = () => {
   lines.push(`altasai_memory_heap_used_bytes ${snapshot.memory.heapUsed}`);
   return `${lines.join('\n')}\n`;
 };
+
+/**
+ * Persists the current metrics snapshot to Firestore.
+ * Called on a 5-minute interval so metrics survive pod restarts.
+ */
+export const persistMetrics = async (): Promise<void> => {
+  try {
+    const snapshot = getMetricsSnapshot();
+    await db.doc('serverMetrics/latest').set({
+      ...snapshot,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    logger.warn('metrics.persist_failed', { error: error instanceof Error ? error.message : String(error) });
+  }
+};
+
+/** Starts the 5-minute metrics persistence heartbeat. Returns the interval handle. */
+export const startMetricsPersistence = (): NodeJS.Timeout =>
+  setInterval(() => { void persistMetrics(); }, 5 * 60 * 1000);
+
 
 export const renderAdminStatsHtml = () => {
   const snapshot = getMetricsSnapshot();

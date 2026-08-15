@@ -11,7 +11,8 @@ import {
 import { useAnalyticsStore } from '../../../stores/analyticsStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useGoalsStore } from '../../../stores/goalsStore';
-import { useTasksStore } from '../../../stores/tasksStore';
+import { useTasksQuery, useCarriedTasksQuery } from '../../../hooks/useTasks';
+import { buildTaskSummary } from '../../../utils/taskSummary';
 import type { Intervention } from '../../../types/firestore';
 import { safeImpactAsync, ImpactFeedbackStyle } from '../../../utils/haptics';
 import { priorityRank, quickModules } from '../constants';
@@ -20,14 +21,6 @@ import { getRiskLevel, getTaskDate } from '../utils';
 
 export function useHomeDashboard() {
   const { user, profile } = useAuthStore();
-  const {
-    tasks,
-    carriedTasks,
-    summary,
-    isLoading: tasksLoading,
-    error: tasksError,
-    initialize: initializeTasks,
-  } = useTasksStore();
   const { goals, initialize: initializeGoals } = useGoalsStore();
   const {
     dashboard,
@@ -35,8 +28,19 @@ export function useHomeDashboard() {
     loadDashboard,
     initialize: initializeAnalytics,
   } = useAnalyticsStore();
+  
   const [refreshing, setRefreshing] = useState(false);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const { data: tasksData, isLoading: tasksLoading, error: tasksErrorObj } = useTasksQuery(user?.uid || null, selectedDate);
+  const { data: carriedTasksData } = useCarriedTasksQuery(user?.uid || null);
+
+  const tasks = tasksData || [];
+  const carriedTasks = carriedTasksData || [];
+  const tasksError = tasksErrorObj ? String(tasksErrorObj) : null;
+  const summary = useMemo(() => buildTaskSummary(tasks), [tasks]);
+
 
   const disciplineConfig = profile?.disciplineLevel
     ? DISCIPLINE_LEVELS[profile.disciplineLevel]
@@ -65,14 +69,12 @@ export function useHomeDashboard() {
   useEffect(() => {
     if (!user?.uid) return;
 
-    const unsubscribeTasks = initializeTasks(user.uid);
     const unsubscribeGoals = initializeGoals(user.uid);
 
     return () => {
-      unsubscribeTasks();
       unsubscribeGoals();
     };
-  }, [user?.uid, initializeTasks, initializeGoals]);
+  }, [user?.uid, initializeGoals]);
 
   const pendingTasks = useMemo(
     () =>

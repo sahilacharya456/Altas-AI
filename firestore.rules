@@ -46,7 +46,10 @@ service cloud.firestore {
         && d.priority in ['low', 'medium', 'high', 'critical']
         && d.status in ['pending', 'in_progress', 'completed', 'carried', 'cancelled']
         && d.estimatedMinutes is int
-        && validateOptionalArray(d.tags, 20);
+        && d.estimatedMinutes >= 0
+        && d.estimatedMinutes <= 1440
+        && validateOptionalArray(d.tags, 20)
+        && d.tags.all(tag => tag is string && tag.size() >= 1 && tag.size() <= 50);
     }
 
     function validateGoal(userId) {

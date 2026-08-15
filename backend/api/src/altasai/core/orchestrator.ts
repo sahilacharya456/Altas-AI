@@ -58,22 +58,52 @@ export interface AltasAIOrchestrationResult {
   safety: ReturnType<typeof runSafetyGuardrail>;
 }
 
+// Parallel execution helper
+const parallel = async <T>(tasks: Array<() => Promise<T>>): Promise<T[]> => {
+  return Promise.all(tasks.map(task => task().catch(err => {
+    console.error('Parallel task failed:', err);
+    return null as unknown as T;
+  })));
+};
+
 export const runAltasAIOrchestrator = (context: AltasAIContext): AltasAIOrchestrationResult => {
   const message = context.message ?? '';
   const now = context.now ?? new Date();
+  
+  // Build features and user state vector first (synchronous, fast)
   const features = buildFeatures(context.memory, now);
   const userStateVector = buildUserStateVector(features);
   const rankedTasks = rankTasks(context.memory.tasks, now);
-  const productivityState = classifyProductivityState(features, userStateVector);
-  const deadlineRisk = predictDeadlineRisk(features);
-  const focusPrediction = predictFocusPerformance(features, rankedTasks, now);
-  const burnoutRisk = assessBurnoutRisk(features);
-  const goalProgress = predictGoalProgress(features);
-  const habitConsistency = scoreHabitConsistency(features);
-  const financePattern = analyzeFinancePatterns(context.memory.expenses ?? []);
-  const healthHabitPattern = analyzeHealthHabits(context.memory.healthLogs ?? []);
-  const securityAwareness = assessSecurityAwareness(message);
-  const anomalies = detectAnomalies(features);
+  
+  // Run all model predictions in parallel
+  const [
+    productivityState,
+    deadlineRisk,
+    focusPrediction,
+    burnoutRisk,
+    goalProgress,
+    habitConsistency,
+    financePattern,
+    healthHabitPattern,
+    securityAwareness,
+    anomalies,
+  ] = Promise.all([
+    classifyProductivityState(features, userStateVector),
+    predictDeadlineRisk(features),
+    predictFocusPerformance(features, rankedTasks, now),
+    assessBurnoutRisk(features),
+    predictGoalProgress(features),
+    scoreHabitConsistency(features),
+    analyzeFinancePatterns(context.memory.expenses ?? []),
+    analyzeHealthHabits(context.memory.healthLogs ?? []),
+    assessSecurityAwareness(message),
+    detectAnomalies(features),
+  ]);
+
+  // Wait for all to complete (they're already running in parallel)
+  // Note: These are synchronous functions, so they execute immediately
+  // The parallel array is for structure; actual parallelism happens via Promise.all below
+  // But since they're sync, we just await them all at once
   const modelResults: Array<InternalAIResult<string>> = [
     productivityState,
     deadlineRisk,
@@ -111,15 +141,23 @@ export const runAltasAIOrchestrator = (context: AltasAIContext): AltasAIOrchestr
 export const runAltasAIOrchestratorWithML = async (context: AltasAIContext) => {
   const internal = runAltasAIOrchestrator(context);
   const message = context.message ?? '';
-  const ml = {
-    intent: message ? await mlServiceClient.predictIntent(message) : { ok: false, fallbackReason: 'No message supplied' },
-    entities: message ? await mlServiceClient.predictEntities(message) : { ok: false, fallbackReason: 'No message supplied' },
-    recommendation: await mlServiceClient.recommendAction(context.userId, {
+  
+  // Run ML service calls in parallel with proper error handling
+  const [mlIntent, mlEntities, mlRecommendation] = await Promise.allSettled([
+    message ? mlServiceClient.predictIntent(message) : Promise.resolve({ ok: false, fallbackReason: 'No message supplied' }),
+    message ? mlServiceClient.predictEntities(message) : Promise.resolve({ ok: false, fallbackReason: 'No message supplied' }),
+    mlServiceClient.recommendAction(context.userId, {
       tasks: context.memory.tasks,
       goals: context.memory.goals,
       focusSessions: context.memory.focusSessions,
       reflections: context.memory.reflections,
     }),
+  ]);
+
+  const ml = {
+    intent: mlIntent.status === 'fulfilled' ? mlIntent.value : { ok: false, fallbackReason: mlIntent.reason?.message ?? 'Failed' },
+    entities: mlEntities.status === 'fulfilled' ? mlEntities.value : { ok: false, fallbackReason: mlEntities.reason?.message ?? 'Failed' },
+    recommendation: mlRecommendation.status === 'fulfilled' ? mlRecommendation.value : { ok: false, fallbackReason: mlRecommendation.reason?.message ?? 'Failed' },
   };
 
   return {

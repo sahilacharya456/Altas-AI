@@ -6,7 +6,18 @@ import { db, FieldValue } from '../lib/firebaseAdmin';
 import { enforceUserQuota } from '../services/quota';
 import { recordBusinessEvent } from '../services/metrics';
 
+import rateLimit from 'express-rate-limit';
+
 export const proofFeedRouter = Router();
+
+// Add strict rate limiter for the public feed endpoint
+const publicFeedLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // Limit each IP to 30 requests per `window` (here, per minute)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'rate_limited', message: 'Too many requests to proof feed.' } },
+});
 
 // 60-second in-process cache for the public feed
 let feedCache: { items: unknown[]; cachedAt: number } | null = null;
@@ -66,7 +77,7 @@ proofFeedRouter.post('/publish', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/proof-feed/recent: public, no auth required.
-proofFeedRouter.get('/recent', asyncHandler(async (_req, res) => {
+proofFeedRouter.get('/recent', publicFeedLimiter, asyncHandler(async (_req, res) => {
   if (feedCache && Date.now() - feedCache.cachedAt < FEED_CACHE_TTL_MS) {
     res.json({ items: feedCache.items, cached: true });
     return;

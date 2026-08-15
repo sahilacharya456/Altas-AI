@@ -140,6 +140,27 @@ export const handleStripeWebhook = async (
     return { received: false, error: `Webhook signature failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 
+  // Idempotency Check: Prevent duplicate webhook processing
+  const eventId = event.id;
+  if (!eventId) return { received: false, error: 'Event missing ID.' };
+
+  const { db } = require('../lib/firebaseAdmin');
+  const eventRef = db.collection('stripe_events').doc(eventId);
+  try {
+    const eventSnap = await eventRef.get();
+    if (eventSnap.exists) {
+      logger.info('stripe.webhook_duplicate_ignored', { eventId });
+      return { received: true }; // Acknowledge to Stripe but do not re-process
+    }
+    await eventRef.set({
+      type: event.type,
+      processedAt: new Date(),
+    });
+  } catch (err) {
+    logger.error('stripe.webhook_idempotency_failed', { eventId, error: err });
+    // Decide whether to fail open or closed. Failing open to not block real activations if DB is slow.
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {

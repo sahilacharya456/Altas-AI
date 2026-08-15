@@ -44,6 +44,18 @@ export const validateTask = (data: any) => {
         }
     }
 
+    // Tags validation
+    if (data.tags !== undefined) {
+        if (!Array.isArray(data.tags) || data.tags.length > 20) {
+            throw new ValidationError('Tags must be an array with maximum 20 items');
+        }
+        for (const tag of data.tags) {
+            if (typeof tag !== 'string' || tag.trim().length === 0 || tag.length > 50) {
+                throw new ValidationError('Each tag must be a non-empty string with maximum 50 characters');
+            }
+        }
+    }
+
     return true;
 };
 

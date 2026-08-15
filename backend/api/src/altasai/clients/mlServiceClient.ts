@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
+import { getTraceId } from '../../middleware/traceContext';
 
 export interface MlServiceResult<T> {
   ok: boolean;
@@ -7,6 +9,27 @@ export interface MlServiceResult<T> {
   fallbackReason?: string;
   status?: number;
 }
+
+export interface CircuitBreakerState {
+  failures: number;
+  lastFailure: number;
+  state: 'closed' | 'open' | 'half-open';
+}
+
+const IntentSchema = z.object({
+  label: z.string(),
+  confidence: z.number(),
+  top3: z.array(z.object({ label: z.string(), confidence: z.number() })),
+  model: z.string(),
+  fallbackRecommended: z.boolean()
+});
+
+const EntitySchema = z.object({
+  entities: z.array(z.object({ type: z.string(), value: z.unknown(), raw: z.string(), confidence: z.number() })),
+  confidence: z.number(),
+  missingFields: z.array(z.string()),
+  clarificationNeeded: z.boolean()
+});
 
 export interface MlIntentPrediction {
   label: string;
@@ -70,18 +93,75 @@ export interface MlReflectionResult {
 
 const safePath = (path: string) => path.startsWith('/') ? path : `/${path}`;
 
+// Circuit breaker configuration
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_TIMEOUT_MS = 30_000; // 30 seconds
+const MAX_RETRIES = 2;
+const RETRY_BASE_DELAY_MS = 500;
+
 export class MlServiceClient {
+  private circuitBreaker: CircuitBreakerState = {
+    failures: 0,
+    lastFailure: 0,
+    state: 'closed',
+  };
+
   constructor(
     private readonly baseUrl = env.mlServiceBaseUrl,
     private readonly timeoutMs = env.mlServiceTimeoutMs
   ) {}
 
-  async request<T>(path: string, body?: Record<string, unknown>, method = body ? 'POST' : 'GET'): Promise<MlServiceResult<T>> {
+  private checkCircuitBreaker(): boolean {
+    const now = Date.now();
+    
+    if (this.circuitBreaker.state === 'open') {
+      if (now - this.circuitBreaker.lastFailure > CIRCUIT_BREAKER_TIMEOUT_MS) {
+        logger.info('ml_service.circuit_breaker_half_open');
+        this.circuitBreaker.state = 'half-open';
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  private recordSuccess(): void {
+    this.circuitBreaker.failures = 0;
+    this.circuitBreaker.state = 'closed';
+  }
+
+  private recordFailure(): void {
+    this.circuitBreaker.failures++;
+    this.circuitBreaker.lastFailure = Date.now();
+    
+    if (this.circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+      this.circuitBreaker.state = 'open';
+      logger.warn('ml_service.circuit_breaker_opened', { 
+        failures: this.circuitBreaker.failures 
+      });
+    }
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async requestWithRetry<T>(
+    path: string, 
+    body?: Record<string, unknown>, 
+    method = body ? 'POST' : 'GET',
+    attempt = 0
+  ): Promise<MlServiceResult<T>> {
+    if (!this.checkCircuitBreaker()) {
+      return { 
+        ok: false, 
+        fallbackReason: 'Circuit breaker open - ML service unavailable' 
+      };
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    // Propagate trace ID so distributed logs can be correlated across services
-    const { getTraceId } = await import('../../middleware/traceContext');
     const traceId = getTraceId();
     const headers: Record<string, string> = {};
     if (body) headers['Content-Type'] = 'application/json';
@@ -97,17 +177,60 @@ export class MlServiceClient {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        return { ok: false, status: response.status, fallbackReason: `ML service returned ${response.status}` };
+        this.recordFailure();
+        const fallbackReason = `ML service returned ${response.status}`;
+        
+        // Retry on 5xx errors
+        if (response.status >= 500 && attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+          logger.warn('ml_service.retrying', { 
+            attempt: attempt + 1, 
+            maxRetries: MAX_RETRIES,
+            delayMs: delay,
+            status: response.status 
+          });
+          await this.sleep(delay);
+          return this.requestWithRetry(path, body, method, attempt + 1);
+        }
+        
+        return { ok: false, status: response.status, fallbackReason };
       }
 
+      this.recordSuccess();
       return { ok: true, data: payload as T, status: response.status };
     } catch (error) {
+      this.recordFailure();
       const fallbackReason = error instanceof Error ? error.message : String(error);
-      logger.warn('ml_service.unavailable', { fallbackReason });
+      
+      // Retry on network errors
+      if (attempt < MAX_RETRIES && 
+          (error instanceof TypeError || // network error
+           error instanceof DOMException || // abort
+           (error instanceof Error && error.name === 'AbortError'))) {
+        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+        logger.warn('ml_service.retrying', { 
+          attempt: attempt + 1, 
+          maxRetries: MAX_RETRIES,
+          delayMs: delay,
+          error: fallbackReason 
+        });
+        await this.sleep(delay);
+        return this.requestWithRetry(path, body, method, attempt + 1);
+      }
+      
+      logger.warn('ml_service.unavailable', { fallbackReason, attempt: attempt + 1 });
       return { ok: false, fallbackReason };
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  async request<T>(path: string, body?: Record<string, unknown>, method = body ? 'POST' : 'GET'): Promise<MlServiceResult<T>> {
+    return this.requestWithRetry(path, body, method);
+  }
+
+  getCircuitBreakerState(): CircuitBreakerState {
+    return { ...this.circuitBreaker };
   }
 
   health() {
@@ -115,11 +238,11 @@ export class MlServiceClient {
   }
 
   predictIntent(text: string) {
-    return this.request<MlIntentPrediction>('/predict/intent', { text });
+    return this.request<MlIntentPrediction>('/predict/intent', { text }).then(res => res.ok && res.data ? { ...res, data: IntentSchema.parse(res.data) } : res);
   }
 
   predictEntities(text: string) {
-    return this.request<MlEntityPrediction>('/predict/entities', { text });
+    return this.request<MlEntityPrediction>('/predict/entities', { text }).then(res => res.ok && res.data ? { ...res, data: EntitySchema.parse(res.data) } : res);
   }
 
   predictReflection(text: string) {

@@ -15,6 +15,53 @@ PATTERNS = {
     "reportRange": re.compile(r"\b(daily|weekly|monthly|week|month)\s+(report|progress|summary)\b", re.I),
 }
 
+# Required slots per intent + the clarification question to ask if missing
+INTENT_SLOTS: dict[str, list[dict[str, str]]] = {
+    "create_task": [
+        {"slot": "taskTitle", "question": "What's the task? Give me a specific title."},
+        {"slot": "deadline", "question": "When do you need this done — today, tomorrow, or a specific date?"},
+    ],
+    "log_expense": [
+        {"slot": "amount", "question": "How much did you spend?"},
+        {"slot": "deadline", "question": "When was this expense — today or another date?"},
+    ],
+    "set_goal": [
+        {"slot": "goalName", "question": "What's the goal? Be specific about the outcome."},
+    ],
+    "start_focus": [
+        {"slot": "duration", "question": "How long do you want to focus — 25 minutes, 45 minutes?"},
+    ],
+    "analyze_security": [
+        {"slot": "securityConcern", "question": "What specifically are you concerned about — a link, a message, a login request?"},
+    ],
+    "log_health": [
+        {"slot": "healthHabit", "question": "Which health habit are you logging — sleep, water, workout?"},
+    ],
+    "generate_report": [
+        {"slot": "reportRange", "question": "Which report — daily, weekly, or monthly?"},
+    ],
+}
+
+
+def fill_slots(intent_label: str, entities: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Given a predicted intent and extracted entities, identify missing required slots
+    and return the first clarification question to ask.
+    Returns empty dict if all slots are filled or intent has no slot requirements.
+    """
+    required_slots = INTENT_SLOTS.get(intent_label, [])
+    if not required_slots:
+        return {"allSlotsFilled": True, "missingSlots": [], "clarificationQuestion": None}
+
+    filled_slot_types = {e["type"] for e in entities}
+    missing = [s for s in required_slots if s["slot"] not in filled_slot_types]
+
+    return {
+        "allSlotsFilled": len(missing) == 0,
+        "missingSlots": [s["slot"] for s in missing],
+        "clarificationQuestion": missing[0]["question"] if missing else None,
+    }
+
 
 def extract_entities(text: str) -> dict[str, Any]:
     entities: list[dict[str, Any]] = []
@@ -55,16 +102,19 @@ def extract_entities(text: str) -> dict[str, Any]:
         add("blocker", blocker_match.group(0).lower(), blocker_match.group(0), 0.74)
     if re.search(r"\b(what should i do|help me|plan|recommend|next)\b", text, re.I):
         add("actionRequest", "next_action", text, 0.7)
-    if re.search(r"\b(today|tomorrow|next week)\b", text, re.I):
-        add("date", re.search(r"\b(today|tomorrow|next week)\b", text, re.I).group(0).lower(), text, 0.72)
+    date_m = re.search(r"\b(today|tomorrow|next week)\b", text, re.I)
+    if date_m:
+        add("date", date_m.group(0).lower(), text, 0.72)
 
-    missing = []
+    missing_slots = []
     if any(e["type"] == "taskTitle" for e in entities) and not any(e["type"] in ["deadline", "date"] for e in entities):
-        missing.append("deadline")
+        missing_slots.append("deadline")
 
     return {
         "entities": entities,
         "confidence": round(sum(e["confidence"] for e in entities) / max(1, len(entities)), 4),
-        "missingFields": missing,
-        "clarificationNeeded": len(missing) > 0,
+        "missingFields": missing_slots,
+        "clarificationNeeded": len(missing_slots) > 0,
+        "slotFilling": fill_slots,  # callable — invoke with (intent_label, entities) at call site
     }
+

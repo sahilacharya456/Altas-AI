@@ -10,6 +10,7 @@ import {
     calculateTodayAnalytics,
     calculateScoreUpdates,
 } from '../services/data';
+import { logger } from '../utils/logger';
 import { updateScores } from '../services/data';
 import { useAuthStore } from './authStore';
 
@@ -146,7 +147,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => {
         try {
             await calculateTodayAnalytics(userId);
         } catch (error) {
-            // Silent fail
+            logger.warn('Failed to save analytics snapshot', error, 'AnalyticsStore');
         }
     },
 
@@ -162,7 +163,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => {
             // Refresh dashboard to show new scores
             await get().loadDashboard();
         } catch (error) {
-            // Silent fail
+            logger.warn('Failed to update user scores', error, 'AnalyticsStore');
         }
     },
 
